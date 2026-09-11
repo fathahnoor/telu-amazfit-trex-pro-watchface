@@ -78,21 +78,22 @@ dengan ornamen & palet warna resmi Telkom University.
 ```
 telu-amazfit-trex-pro-watchface/
 ├── README.md                    <- file ini
+├── preview.html                 <- halaman inspeksi visual (butuh server statis)
 ├── design/
-│   ├── telu-theme.json          <- tema warna + font + ornamen
-│   └── LAYOUT.md                <- spesifikasi layout per elemen (koordinat 360x360)
+│   ├── telu-theme.md            <- aturan tema warna + ornamen TEL-U
+│   ├── LAYOUT.md                <- spesifikasi layout per elemen (koordinat 360x360)
+│   └── watchface.json           <- layout machine-readable
 ├── assets/
-│   ├── 360x360/                 <- PNG per elemen (background, angka, ikon)
-│   └── preview/                 <- preview 220x220
-├── src/
-│   ├── watchface.json           <- deskripsi layout (kompatibel editor legacy T-Rex Pro)
-│   └── gen_preview.py           <- generator preview PNG dari watchface.json
+│   ├── 360x360/                 <- PNG per elemen (bg, branding, ampm, digits/)
+│   └── preview/                 <- mockup preview 360 & 220
 ├── tools/
-│   └── build.py                 <- packer .bin (TBD — tahap berikutnya)
-├── docs/
-│   ├── guide/                   <- panduan lama (referensi)
-│   └── research/                <- hasil riset (device list, warna, dsb.)
-└── examples/                    <- contoh watch face rigger asli (referensi visual)
+│   ├── gen_assets.py            <- generator background/branding/ampm + mockup
+│   ├── gen_digits.py            <- generator digit 0-9 (72px)
+│   └── serve_preview.py         <- server statis kecil utk preview.html
+└── docs/
+    ├── build-install.md         <- cara jadi .bin + instalasi
+    ├── guide/                   <- panduan lama (referensi)
+    └── research/                <- hasil riset (device list, warna, editor)
 ```
 
 ---
@@ -103,10 +104,12 @@ telu-amazfit-trex-pro-watchface/
 - [x] Riset palet warna resmi Telkom University
 - [x] Setup repo + README
 - [x] Tema & spesifikasi layout (`design/`)
-- [ ] Generator asset PNG 360×360 (`assets/`)
-- [ ] `watchface.json` + preview renderer
-- [ ] Packer `.bin` untuk T-Rex Pro
-- [ ] Instruksi instalasi (Developer Mode Zepp App)
+- [x] Generator asset PNG 360×360 (`tools/gen_assets.py`, `tools/gen_digits.py`)
+- [x] Asset hasil generate: bg, branding, ampm, digit 0–9, preview mockup
+- [x] `design/watchface.json` (layout machine-readable)
+- [x] Panduan build `.bin` via editor komunitas (`docs/build-install.md`)
+- [ ] Packer `.bin` mandiri (perlu sampel .bin asli utk reverse-engineering)
+- [ ] Foto hasil di jam (verifikasi final)
 
 ---
 
