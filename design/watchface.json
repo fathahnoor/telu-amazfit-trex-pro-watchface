@@ -1,0 +1,33 @@
+{
+  "name": "telu-trex-pro",
+  "description": "Telkom University theme watchface for Amazfit T-Rex Pro (360x360)",
+  "device": "t-rex-pro",
+  "deviceSource": 83,
+  "screen": { "width": 360, "height": 360 },
+  "colors": {
+    "telu_red": "#ED1E28",
+    "telu_maroon": "#B6252A",
+    "gray_dark": "#55565B",
+    "gray_light": "#959597",
+    "white": "#FFFFFF",
+    "black": "#000000"
+  },
+  "elements": [
+    { "id": "background", "type": "img", "file": "bg.png", "x": 0, "y": 0 },
+    { "id": "arc_battery", "type": "arc", "cx": 180, "cy": 180, "r": 158, "start": 135, "end": 45, "lw": 6, "color": "#ED1E28", "level": "battery" },
+    { "id": "small_time", "type": "text", "x": 196, "y": 12, "w": 150, "h": 28, "color": "#FFFFFF", "bind": "time_hhmm" },
+    { "id": "kcal_label", "type": "text", "x": 16, "y": 48, "w": 110, "h": 24, "color": "#959597", "text": "KCAL" },
+    { "id": "kcal_value", "type": "text", "x": 16, "y": 74, "w": 110, "h": 32, "color": "#FFFFFF", "bind": "kcal" },
+    { "id": "sep1", "type": "line", "x": 16, "y": 112, "w": 110, "h": 2, "color": "#55565B" },
+    { "id": "step_label", "type": "text", "x": 16, "y": 122, "w": 110, "h": 24, "color": "#ED1E28", "text": "STEP" },
+    { "id": "step_value", "type": "text", "x": 16, "y": 148, "w": 110, "h": 32, "color": "#FFFFFF", "bind": "steps" },
+    { "id": "sep2", "type": "line", "x": 16, "y": 186, "w": 110, "h": 2, "color": "#55565B" },
+    { "id": "hr_label", "type": "text", "x": 16, "y": 196, "w": 110, "h": 24, "color": "#ED1E28", "text": "HR" },
+    { "id": "hr_value", "type": "text", "x": 16, "y": 222, "w": 110, "h": 32, "color": "#FFFFFF", "bind": "hr" },
+    { "id": "big_hour", "type": "text", "x": 172, "y": 96, "w": 96, "h": 72, "color": "#FFFFFF", "bind": "hour", "font": "bold", "align": "right" },
+    { "id": "big_minute", "type": "text", "x": 172, "y": 180, "w": 96, "h": 72, "color": "#FFFFFF", "bind": "minute", "font": "bold", "align": "right" },
+    { "id": "ampm_marker", "type": "img", "file": "ampm.png", "x": 268, "y": 168, "w": 36, "h": 28 },
+    { "id": "date", "type": "text", "x": 172, "y": 268, "w": 150, "h": 26, "color": "#ED1E28", "bind": "date_short" },
+    { "id": "branding", "type": "img", "file": "branding.png", "x": 110, "y": 330, "w": 140, "h": 20 }
+  ]
+}

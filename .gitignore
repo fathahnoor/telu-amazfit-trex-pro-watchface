@@ -1,0 +1,17 @@
+# Build artifacts
+dist/
+build/
+output/
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Node (jika suatu saat perlu toolchain node)
+node_modules/
