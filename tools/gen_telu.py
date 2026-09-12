@@ -14,7 +14,7 @@ v5/v5_preview-reference.png:
   pasangan gambar ikon+label dengan pita tengah transparan untuk angka
   waktu, sehingga hanya satu event tampil.
 - Cuaca: suhu + 29 banner kondisi (piktogram + label tertanam).
-- Always-on disederhanakan: jam, hari+tanggal, baterai.
+- Always-on sama dengan mode normal: seluruh elemen tetap tampil.
 
 Output ke build/telu/: 0..N PNG + preview.png 220x220 + watchface.json.
 """
@@ -777,39 +777,12 @@ def main():
     data_system[6]["NumberSequence"]["Text"]["Image"]["X"] = 180 - solar_w // 2
     data_system[6]["NumberSequence"]["Text"]["Image"]["Y"] = VALUE_SOLAR_CY - 6  # noqa: E501
 
-    # AOD sederhana: jam + hari singkat + tanggal + baterai.
-    aod_week = make_weekday_short_images()[0].width
-    aod_day_w = 2 * METRIC_CELL[0]
-    aod_gap = 8
-    aod_left = 180 - (aod_week + aod_gap + aod_day_w) // 2
+    # Always-on memakai seluruh layout normal, termasuk cuaca dan gauge.
     idle = {
-        "Time": {"Digital": {
-            "HoursMinutesSeconds": [
-                {"Type": 0, "Independent": True,
-                 "Text": number_text(HOUR_X, AOD_TIME_Y, I_TIME_W, 10,
-                                     zeropad=1)},
-                {"Type": 1, "Independent": True,
-                 "Text": number_text(MINUTE_X, AOD_TIME_Y, I_TIME_R, 10,
-                                     zeropad=1)},
-            ],
-        }},
-        "Date": {
-            "YearMonthDay": [
-                {"Type": 2, "Independent": True,
-                 "Text": number_text(aod_left + aod_week + aod_gap, AOD_DATE_Y,
-                                     I_SOLAR_D, 10, zeropad=1)},
-            ],
-            "Week": {"Independent": True,
-                     "Text": number_text(aod_left, AOD_DATE_Y, I_DAYSHORT, 7,
-                                         zeropad=0, unknown6=1)},
-        },
-        "Data": {"Type": "Battery",
-                 "NumberSequence": {"Independent": True,
-                                    "Text": number_text(
-                                        180 - (3 * METRIC_CELL[0] + percent_width) // 2,
-                                        AOD_BATTERY_Y, I_METRIC, 10,
-                                        nodata=I_NODATA, suffix=I_PCT)}},
-        "BackgroundImageIndex": I_AOD,
+        "Time": {"Digital": time_digital},
+        "Date": date_system,
+        "Data": data_system,
+        "BackgroundImageIndex": I_BG,
     }
 
     preview_index = state["i"]

@@ -17,8 +17,8 @@ berlaku untuk v4.
   masih perlu diperiksa di perangkat.
 - 👟 **Satu layar, semua ritme:** langkah, denyut jantung, kalori, dan baterai
   dalam cincin-cincin rapi.
-- 🌙 **Always-on nanggung? Nggak.** Jam, hari, tanggal, dan baterai tetap
-  tampil tanpa bikin panel utama "teriak-teriak".
+- 🌙 **Always-on nanggung? Nggak.** Seluruh item mode normal tetap
+  tampil, dengan posisi dan warna yang sama.
 - 🔋 **Ramah AMOLED:** hitam pekat bikin layar hemat tenaga.
 - ⚪ **Aman di layar bulat:** semua elemen sudah dihitung supaya nggak
   kepotong bezel. Validator tambahan menolak tabrakan antarelemen.
@@ -90,7 +90,7 @@ python -m unittest discover -s tools -p "test_*.py"
 
 | Revisi | Kabar |
 | :--- | :--- |
-| **v5** (12 Sep 2026) | 🎓 Edisi **TELKOM UNIVERSITY**: wajah kampus, modul cuaca + matahari terbit/terbenam, empat cincin metrik, dan always-on ringkas. |
+| **v5** (12 Sep 2026) | 🎓 Edisi **TELKOM UNIVERSITY**: wajah kampus, modul cuaca + matahari terbit/terbenam, empat cincin metrik, dan always-on lengkap, sama dengan mode normal. |
 | v4 (12 Sep 2026) | ✅ Berjalan di jam. Warna merah diperbaiki, posisi jam terkunci, always-on sama dengan tampilan utama. |
 | v3 | Perbaikan referensi gambar (ID mulai 1), watchface muncul di koleksi jam. |
 | v2 | Percobaan pertama, preview hitam, belum berhasil. |

@@ -1,7 +1,7 @@
 {
   "file": "telu_trex_pro.bin",
-  "sha256": "f7e4f56464c40d5ffdd5101a2843d74ea062a278e74ba1bf2c4837b660412e7b",
-  "bytes": 367023,
+  "sha256": "fc3e2b50b0106bec1852cbf1b9b21c8e140375813c6e4fdf211d6e78d8b03e87",
+  "bytes": 367720,
   "format": "UIHH v2 compressed",
   "images": 119,
   "params_equal": true,
@@ -10,7 +10,7 @@
     "device_id": 83,
     "quicklz_blocks": 469,
     "decoded_block_bytes": 4096,
-    "raw_tail_bytes": 380,
+    "raw_tail_bytes": 832,
     "format_marker": 1
   },
   "image_reference_checks": {

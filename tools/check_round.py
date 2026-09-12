@@ -171,7 +171,7 @@ def main():
     idle = params["IdleScreen"]
     check_time("idle", idle["Time"]["Digital"])
     check_date("idle", idle["Date"])
-    check_data("idle", [idle["Data"]])
+    check_data("idle", idle["Data"])
 
     if bad:
         print("GAGAL: %d elemen di luar lingkaran: %s" % (len(bad), bad))

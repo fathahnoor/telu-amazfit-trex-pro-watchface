@@ -108,14 +108,20 @@ class WatchfaceV5Tests(unittest.TestCase):
         walk(self.named, '')
         self.assertEqual(found, [], 'Alignment Right tidak didukung: %s' % found)
 
-    def test_idle_is_simplified(self):
+    def test_idle_contains_the_complete_normal_layout(self):
         idle = self.named['IdleScreen']
-        self.assertNotEqual(idle['BackgroundImageIndex'],
-                            self.named['Background']['ImageIndex'])
-        data = idle['Data']
-        self.assertEqual(data['Type'], 'Battery')
-        self.assertNotIn('CircleScale', data)
-        self.assertIn('NumberSequence', data)
+        self.assertEqual(idle['BackgroundImageIndex'],
+                         self.named['Background']['ImageIndex'])
+        self.assertEqual(idle['Time'], self.named['Time'])
+        self.assertEqual(idle['Date'], self.named['System']['Date'])
+        self.assertEqual(idle['Data'], self.named['System']['Data'])
+
+    def test_idle_preview_matches_normal_pixel_for_pixel(self):
+        with Image.open(ROOT / 'out/preview.png') as normal:
+            with Image.open(ROOT / 'out/preview_idle.png') as idle:
+                self.assertEqual(idle.size, normal.size)
+                self.assertEqual(idle.convert('RGBA').tobytes(),
+                                 normal.convert('RGBA').tobytes())
 
     def test_all_gauges_present(self):
         types = [e['Type'] for e in self.named['System']['Data']]

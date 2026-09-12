@@ -213,10 +213,7 @@ def main(argv):
         canvas = imgs[idle["BackgroundImageIndex"]].copy()
         draw_time(canvas, imgs, idle["Time"]["Digital"], args)
         draw_date(canvas, imgs, idle["Date"], args)
-        entry = idle["Data"]
-        if "NumberSequence" in entry:
-            draw_number(canvas, imgs, entry["NumberSequence"]["Text"],
-                        args["batt"])
+        draw_data(canvas, imgs, idle["Data"], args)
     else:
         canvas = imgs[params["Background"]["ImageIndex"]].copy()
         draw_time(canvas, imgs, params["Time"]["Digital"], args)
