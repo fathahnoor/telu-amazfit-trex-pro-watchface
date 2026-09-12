@@ -3,7 +3,7 @@
 
 Pakai dari root repo:
   python tools/build_all.py
-Hasil: out/telu_trex_pro.bin siap import ke jam.
+Hasil: out/telu_trex_pro.bin untuk uji instalasi pada jam.
 """
 
 import shutil
@@ -28,7 +28,15 @@ def main():
     (ROOT / "out").mkdir(exist_ok=True)
     run("tools/pack_watchface.py", "build/telu", "out/telu_trex_pro.bin")
     run("tools/verify_bin.py")
-    print("BUILD OK -> out/telu_trex_pro.bin")
+    run("tools/render_mockup.py", "build/verified_bin", "out/preview.png")
+    run("tools/render_mockup.py", "build/verified_bin", "out/preview_max.png",
+        "--time", "1259", "--steps", "99999", "--kcal", "9999",
+        "--hr", "199", "--batt", "100", "--day", "31", "--wday", "1", "--ampm", "PM")
+    run("tools/render_mockup.py", "build/verified_bin", "out/preview_zero.png",
+        "--time", "0007", "--steps", "0", "--kcal", "0", "--hr", "0", "--batt", "0")
+    run("tools/render_mockup.py", "build/verified_bin", "out/preview_idle.png", "--mode", "idle")
+    shutil.copyfile(ROOT / "out/telu_trex_pro.bin", ROOT / "out/telu_redline_compat_v4.bin")
+    print("BUILD OK -> out/telu_trex_pro.bin (alias: out/telu_redline_compat_v4.bin)")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,23 @@
+{
+  "file": "telu_trex_pro.bin",
+  "sha256": "ff9f039ba9b89122a6fd640b41a298bb962d925194fa905691ce82fea549163a",
+  "bytes": 200617,
+  "format": "UIHH v2 compressed",
+  "images": 45,
+  "params_equal": true,
+  "max_pixel_delta": 0,
+  "container_checks": {
+    "device_id": 83,
+    "quicklz_blocks": 367,
+    "decoded_block_bytes": 4096,
+    "raw_tail_bytes": 2254,
+    "format_marker": 1
+  },
+  "image_reference_checks": {
+    "image_id_base": 1,
+    "background_id": 1,
+    "preview_id": 45
+  },
+  "device_test": "compat v4 aktif dan berjalan di T-Rex Pro (laporan pengguna, 12 September 2026)",
+  "previous_device_result": "Compat v3 tampil di jam 2026-09-12; merah tampil biru karena urutan byte gambar dan Alignment Right tidak dihormati firmware"
+}

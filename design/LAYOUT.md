@@ -1,39 +1,27 @@
-# TEL-U Watchface — Layout Final v2 "MIDNIGHT BLAZE" (360 × 360, UIHH_GT2)
+# TEL-U REDLINE
 
-Arah desain: tipografi memimpin (Anton condensed italic + Rajdhani),
-hitam dominan + merah Tel-U tajam, monogram T angular raksasa sebagai
-potongan identitas, slash diagonal, chip data, glow terkendali.
-Font OFL di `assets/fonts/` (Anton, Rajdhani). Sumber: `tools/gen_telu.py`.
+Kanvas 360 x 360, pusat (180,180), radius aman konten dinamis 175 px.
 
-ROUND-SAFE: semua konten lolos validator `tools/check_round.py` (r=175).
+| Elemen | Posisi dan ukuran |
+| --- | --- |
+| Branding | y=40, simbol T dan TELKOM UNIVERSITY |
+| Hari, tanggal, AM/PM | y=83 sampai 105 |
+| Jam | x=62, y=114, 108 x 100 (Alignment Left, zero pad) |
+| Menit | x=191, y=114, 108 x 100, kapsul merah (zero pad) |
+| Kalori | x=59, y=253, hingga 4 digit |
+| Langkah | x=146, y=253, hingga 5 digit |
+| Denyut | x=250, y=253, hingga 3 digit |
+| Baterai | x=159, y=297, Alignment Left, termasuk suffix, hingga 3 digit |
+| Arc baterai | pusat 180,180, radius 172, 155 sampai 205 derajat |
 
-## Peta Indeks Gambar (43 total, preview = 42)
+Semua teks dinamis memakai Alignment Left dengan X eksplisit; firmware
+T-Rex Pro mengabaikan Alignment Right (teks mulai dari X, memanjang ke kanan).
+Tampilan utama dan IdleScreen memakai blok parameter yang sama, termasuk
+background, sehingga preview, tampilan utama, dan always-on identik.
 
-| Indeks | Isi | Ukuran |
-|---|---|---|
-| 0 | Background (karbon, blaze, monogram T, ring, chip, branding) | 360×360 |
-| 1 | Badge AM angular | 40×24 |
-| 2 | Badge PM angular | 40×24 |
-| 3–12 | Digit besar Anton italic + bayangan 0–9 | 64×100 |
-| 13–22 | Digit Rajdhani Bold 0–9 (nilai) | 26×34 |
-| 23–32 | Digit Rajdhani 0–9 (baterai %, tanggal) | 19×25 |
-| 33 | No-data `--` | dinamis |
-| 34 | `%` (suffix baterai) | dinamis |
-| 35–41 | Weekday TUE WED THU FRI SAT SUN MON (putih) | dinamis |
-| 42 | Preview 220×220 (katalog) | 220×220 |
+Indeks aset lokal (ID firmware adalah indeks lokal + 1): 0 latar; 1-2 AM/PM; 3-12 angka waktu; 13-22 metrik;
+23-32 tanggal/baterai; 33 no-data; 34 persen; 35-41 weekday MON..SUN;
+42 slot transparan; 43 latar idle cadangan (tidak dirujuk); 44 preview tertanam.
 
-## Posisi Elemen (origin kiri-atas)
-
-| Elemen | Posisi | Catatan |
-|---|---|---|
-| Tanggal: weekday + hari | (162, 38) + (218, 36), Left | atas tengah |
-| AM / PM | (80, 44) | badge angular kiri atas |
-| Jam HH / MM | (314, 74) / (314, 180), Right | Anton italic besar |
-| KCAL / STEP / HR | (58, 118/184/246), Left, dalam chip | digit Rajdhani |
-| Baterai % | (283, 286), Right + suffix `%` | kanan bawah |
-| Arc baterai | center (180,180) r=172, 155°→205° | merah, lebar 8, flat; 0° = atas CW |
-| IdleScreen | jam Center (180, 92/198), weekday Center (180, 308), arc | AOD minimal |
-
-Chip (40, y, 172, y+62) + bar merah, label di dalam, ikon putih —
-semuanya dibakar ke background. Nilai 5-digit dan baterai 100% sudah
-diuji muat + lolos validator lingkaran.
+Parameter aktual dihasilkan oleh `tools/gen_telu.py` ke `build/telu/watchface.json`.
+`design/watchface.json` adalah arsip layout lama dan tidak digunakan saat build.

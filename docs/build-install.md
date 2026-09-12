@@ -1,65 +1,66 @@
-# Build & Instalasi — TEL-U Watchface (T-Rex Pro)
+# Build dan instalasi TEL-U REDLINE
 
-## Status: SIAP IMPORT
+## Revisi setelah uji perangkat
 
-File **`out/telu_trex_pro.bin`** adalah watchface jadi untuk Amazfit T-Rex Pro
-(360×360, format UIHH_GT2). Terverifikasi: parse balik 43 gambar + parameter
-identik dengan desain, dan mockup dirender ulang dari isi `.bin` itu sendiri
-(lihat `assets/preview/frombin_360.png`).
+V3 aktif di jam pada 12 September 2026, tetapi semua elemen merah (chip T,
+kapsul menit, ikon metrik) tampil biru dan posisi jam/menit meleset karena
+firmware mengabaikan Alignment Right. V4 memperbaikinya dan berjalan di jam
+pada hari yang sama: byte gambar ditulis BGRX dan semua teks dinamis memakai
+Alignment Left dengan koordinat eksplisit. Always-on kini memakai layout dan
+latar yang sama dengan tampilan utama.
+Lihat [diagnosis v4](compatibility-fix-v4.md) dan penjelasan
+[diagnosis v3](compatibility-fix-v3.md) untuk riwayat referensi gambar.
 
-## Build Ulang (satu perintah)
+## Status yang sudah dibuktikan
 
-Butuh Python + Pillow saja, tanpa tool lain:
+Berkas `out/telu_trex_pro.bin` dibuat untuk Amazfit T-Rex Pro legacy dengan
+layar 360 x 360. Signature UIHH versi 2, body terkompresi, gambar 32-bit
+dengan urutan byte BGRX (terbukti dari uji jam 12 September 2026), 45 gambar
+termasuk preview 220 x 220 pada ID firmware 45 (indeks lokal 44).
+Tampilan idle memakai background ID 1 yang sama dengan tampilan utama; slot
+lokal 43 tidak lagi dirujuk.
+
+Build lokal dan parser referensi watchface-js berhasil membaca parameter dan
+45 gambar secara identik. Pemeriksaan geometri mencakup 99999 langkah,
+9999 kalori, tiga digit denyut, baterai 100 persen, semua hari, dan mode idle.
+Preview adalah simulasi layout dari ekstraksi bin, bukan tangkapan layar jam.
+
+**Belum dibuktikan:** impor pada versi AmazFaces milik pengguna, transfer
+Bluetooth sampai selesai, perilaku firmware, perubahan menit/tanggal, AM/PM,
+dan persistensi setelah restart jam. Keberhasilan parse tidak menjamin semua
+kombinasi HP, aplikasi, dan firmware dapat memasangnya.
+
+## Langkah di AmazFaces
+
+1. Salin `out/telu_redline_compat_v4.bin` ke folder Downloads di HP.
+2. Pastikan jam yang dipilih adalah **Amazfit T-Rex Pro** dan masih tersambung
+   dengan aplikasi pendampingnya. Resolusi yang benar adalah 360 x 360.
+3. Pada AmazFaces, gunakan fitur **Add file / file lokal** bila tersedia,
+   lalu pilih berkas `.bin`. Nama/menu dapat berbeda antar versi.
+4. Jika file dikenali dan preview benar, pilih tindakan pemasangan ke jam
+   yang tersedia dan ikuti instruksi koneksi aplikasi hingga transfer selesai.
+5. Periksa waktu, pergantian menit, hari/tanggal, metrik, baterai, mode idle,
+   lalu pastikan watchface tetap tersedia setelah restart jam.
+
+Administrator AmazFaces mengonfirmasi penambahan file lokal pada beta dalam
+[posting 8 September 2022](https://amazfitwatchfaces.com/forum/viewtopic.php?start=125&t=1709).
+Itu adalah bukti historis keberadaan fitur, bukan jaminan dukungan versi HP
+saat ini. Jangan mengganti model menjadi T-Rex biasa agar file dipaksa diterima.
+Jika menu file lokal tidak ada atau transfer gagal, catat Android/iOS, versi
+AmazFaces, firmware jam, tahap terakhir, dan pesan error untuk pemeriksaan lanjut.
+
+Tidak perlu mengubah ekstensi menjadi ZIP atau membuat QR Zepp OS untuk berkas
+ini. T-Rex Pro terdaftar sebagai perangkat non-Zepp OS pada
+[dokumentasi resmi Zepp](https://docs.zepp.com/docs/reference/related-resources/device-list/).
+
+## Build
 
 ```powershell
 python tools/build_all.py
+python -m unittest discover -s tools -p "test_*.py"
 ```
 
-Alurnya: `tools/gen_telu.py` (gambar + `watchface.json`) → `tools/render_mockup.py`
-(mockup) → `tools/pack_watchface.py` (pack jadi `.bin` via `tools/trexpro_wf.py`)
-→ `tools/verify_bin.py` (verifikasi otomatis, gagal bila beda).
-
-Packer `tools/trexpro_wf.py` mandiri (tanpa dependency selain Pillow untuk
-unpack ke PNG): format UIHH_GT2 di-reverse dari file asli katalog komunitas
-dan divalidasi round-trip byte-identik melawan implementasi referensi
-(watchface-js). Catatan format ada di `docs/research/format-uihh-gt2.md`.
-
-## Instalasi ke Jam
-
-> Koreksi penting: Zepp App versi sekarang TIDAK bisa memasang `.bin` legacy
-> lewat Developer Mode → Scan. Menu Scan/Bridge di aplikasi adalah alur
-> dev-bridge **Zepp OS** (butuh JS runtime di jam); T-Rex Pro adalah RTOS
-> legacy sehingga QR URL biasa ditolak ("unrecognized QR code"). Pakai salah
-> satu jalur di bawah.
-
-### Opsi A — Gadgetbridge (terverifikasi di source code)
-
-Source Gadgetbridge (`AmazfitTRexProFirmwareInfo`) mengenali file berformat
-ini (`UIHH` + version 1/2) sebagai `WATCHFACE` untuk `AMAZFITTREXPRO`:
-
-1. Install Gadgetbridge (Android, F-Droid) dan pair-kan T-Rex Pro di sana.
-2. Salin `out/telu_trex_pro.bin` ke HP.
-3. Buka file `.bin` tersebut lewat Gadgetbridge (file manager → Open with →
-   Gadgetbridge) → konfirmasi instalasi watchface → sync ke jam.
-
-### Opsi B — AmazFaces (aplikasi komunitas)
-
-1. Install AmazFaces di HP dan salin `out/telu_trex_pro.bin` ke HP.
-2. Di AmazFaces: impor file `.bin` → pilih T-Rex Pro → install ke jam.
-3. (Katalog amazfitwatchfaces.com memang menyalurkan file `.bin` T-Rex Pro
-   lewat aplikasi ini.)
-
-## Catatan Preview Katalog
-
-Preview untuk katalog Zepp: **220×220** — tertanam di dalam `.bin` sebagai
-gambar terakhir (index 42), dibuat dari `build/mockup_220.png`.
-
-## Konvensi yang Dipakai Desain Ini (hasil riset file asli)
-
-- Weekday 7 gambar berurutan **TUE..MON** (teramati pada 3 file T-Rex Pro asli
-  dari 2 author berbeda; firmware menampilkan index 0 saat Selasa).
-- `stored count` = jumlah gambar + 1 (quirk packer umum, diikuti agar kompatibel).
-- Arc baterai: 0° = atas, searah jarum jam; dipakai simetris di bawah (135→225)
-  agar robust.
-- File ditulis **uncompressed** (byte 40 = 0xFF); jam dan parser referensi
-  sama-sama mendukungnya.
+`out/validation.json` memuat SHA-256 dan hasil pemeriksaan build terakhir.
+`tools/verify_reference.mjs` dapat dijalankan dengan Node dan path checkout
+watchface-js. Tidak memerlukan instalasi package untuk membaca sumber parser.
+Build tidak mengunggah berkas ke katalog AmazFaces.

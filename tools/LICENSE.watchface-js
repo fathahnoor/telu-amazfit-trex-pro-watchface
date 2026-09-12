@@ -1,7 +1,7 @@
 Skema parameter UIHH_GT2, template header 88-byte, dan algoritma dekompresi
 chunk yang dipakai tools/trexpro_wf.py diadaptasi dari proyek:
 
-  watchface-js oleh Nadeflore — https://github.com/Nadeflore/watchface-js
+  watchface-js oleh Nadeflore - https://github.com/Nadeflore/watchface-js
   Lisensi: GNU General Public License v3.0 (GPL-3.0-only)
 
 Implementasi encode/decode di trexpro_wf.py ditulis ulang dalam Python;

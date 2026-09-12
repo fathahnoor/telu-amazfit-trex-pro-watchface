@@ -1,152 +1,87 @@
-# TEL-U Watchface — Amazfit T-Rex Pro
+# 🔴 TEL-U REDLINE | Watchface Amazfit T-Rex Pro
 
-Watch face **Amazfit T-Rex Pro** bertema **Telkom University (TEL-U)** —
-gaya "MIDNIGHT BLAZE": tipografi condensed italic memimpin (Anton + Rajdhani),
-hitam dominan + merah Tel-U tajam, monogram T angular raksasa, chip data,
-lockup branding kotak-T. Round-safe (lolos validator lingkaran r=175).
+**Bawa identitas Telkom University ke pergelangan tanganmu!** 👋⌚
+Halo Telyutizen! TEL-U REDLINE adalah watchface untuk **Amazfit T-Rex Pro**
+(layar bulat 360 x 360) dengan merah khas Tel-U, angka jam super besar, dan
+info harian lengkap. Sudah jalan mulus di jam sungguhan. 🔥
 
-> ✅ **Status: SELESAI — `out/telu_trex_pro.bin` siap import ke jam.**
-> Build satu perintah (`python tools/build_all.py`), terverifikasi parse balik.
+![Tampilan utama TEL-U REDLINE](out/preview.png)
 
----
+## ✨ Kenapa kamu bakal suka
 
-## Spesifikasi Perangkat (Terverifikasi dari docs resmi Zepp)
+- 🔴 **Merah khas Tel-U** di kapsul menit, chip brand, dan aksen dial.
+- 🕐 **Jam besar banget**, sekali lirik langsung kebaca.
+- 📊 **Info lengkap dalam satu layar:** hari, tanggal, AM/PM, kalori, langkah,
+  denyut jantung, dan baterai.
+- 🌙 **Always-on nggak nanggung:** semua info tetap tampil, bukan cuma jam.
+- 🔋 **Ramah AMOLED:** latar hitam pekat, pixel benar-benar mati, baterai lebih awet.
+- ✅ **Aman di layar bulat:** semua elemen sudah dihitung agar tidak kepotong bezel.
 
-| Parameter | Nilai |
-|---|---|
-| Model | Amazfit T-Rex Pro |
-| Platform | **Non-Zepp OS** (firmware legacy) |
-| deviceSource | `83` (global), `200` (China) |
-| Resolusi layar | **360 × 360 px** |
-| Preview image | 220 × 220 px |
-| deviceSource | `83` (global), `200` (China) |
-| Format output | `.bin` (watchface legacy Amazfit) |
-| Tombol fisik | 4 (UP / SELECT / DOWN / BACK) |
+## 📸 Galeri tampilan
 
+| Siang hari 🔥 | Always-on 🌙 |
+| :---: | :---: |
+| ![Tampilan utama](out/preview.png) | ![Always-on](out/preview_idle.png) |
 
+| Data maksimum 🔝 | Tengah malam 🌚 |
+| :---: | :---: |
+| ![Nilai maksimum](out/preview_max.png) | ![Tengah malam](out/preview_zero.png) |
 
-> ⚠️ **Koreksi dari panduan lama:** panduan sebelumnya menyebut T-Rex Pro 454×454 + Zepp OS.
-> Berdasarkan [device list resmi](https://docs.zepp.com/docs/reference/related-resources/device-list/),
-> T-Rex Pro ada di daftar **Non-Zepp OS Devices** dengan layar 360×360.
-> Panduan lama tetap disimpan di `docs/guide/` sebagai referensi historis.
+*Gambar di atas adalah render dari isi file `.bin` (simulasi), bukan foto jam,
+supaya kamu bisa lihat semua skenario tampilan.*
 
----
+## 📥 Cara pasang (5 menit, gampang!)
 
-## Tema Warna Telkom University
+1. **Unduh** file [`out/telu_redline_compat_v4.bin`](out/telu_redline_compat_v4.bin)
+   (klik tombol **Download** di halaman file itu).
+2. Siapkan **AmazFaces** di HP, pastikan jam tersambung, lalu pilih perangkat
+   **Amazfit T-Rex Pro** (360 x 360).
+3. Buka menu **Add file / file lokal** di AmazFaces, lalu pilih file `.bin`
+   tadi. Nama menu bisa berbeda tergantung versi aplikasi.
+4. Ikuti proses instalasi sampai selesai, lalu aktifkan TEL-U REDLINE dari
+   daftar watchface jam kamu. ✅
+5. Kalau bingung, panduan lengkap ada di [`docs/build-install.md`](docs/build-install.md).
 
-| Warna | Hex | Kegunaan di watch face |
-|---|---|---|
-| Merah Tel-U | `#ED1E28` | Aksen utama, arc progress, penanda AM/PM |
-| Merah Marun | `#B6252A` | Aksen sekunder, penanda jam (marker arc) |
-| Abu Gelap | `#55565B` | Teks sekunder, garis pembatas |
-| Abu Terang | `#959597` | Ikon, elemen non-prioritas |
-| Putih | `#FFFFFF` | Angka jam utama |
-| Hitam | `#000000` | Background |
+> 💡 Ini format legacy UIHH v2 khusus T-Rex Pro, bukan paket Zepp OS.
+> Jangan pilih model T-Rex biasa ya, nanti gagal.
 
-*(Sumber: [it.telkomuniversity.ac.id — kode warna resmi](https://it.telkomuniversity.ac.id/kode-warna-logo-telkom-university/))*
+## 🛠️ Buat yang hobi ngoprek
 
----
+Watchface ini dibangun dari nol pakai Python, tanpa SDK Zepp. Semua script ada
+di `tools/`:
 
-## Layout (Tiruan Watch Face Rigger)
-
-```
-┌──────────────────────────────────┐
-│  KCAL              🔥 05:45      │   <- kolom kiri + jam kecil + ikon aktivitas
-│   29                             │
-│  ──────          ┌────────┐      │
-│  STEP           │        │      │
-│  1115           │  05    │      │   <- jam digital BESAR (putih)
-│  ──────         │  32    │      │   <- menit digital BESAR (putih)
-│  HR             │        │      │
-│   97        ►AM │        │      │   <- penanda AM/PM (merah Tel-U)
-│  ╱arc           └────────┘      │
-│  ╱progress       SAT 12         │   <- tanggal (merah Tel-U)
-└──────────────────────────────────┘
+```powershell
+python tools/build_all.py
+python -m unittest discover -s tools -p "test_*.py"
 ```
 
-**Elemen watch face:**
-- Jam digital besar (HH / MM putih, font tebal)
-- Indikator AM/PM dengan panah merah Tel-U
-- Kolom kiri: KCAL, STEP, HR (label abu + angka putih)
-- Arc progress baterai (merah Tel-U → marun)
-- Jam kecil atas (HH:MM + ikon aktivitas)
-- Tanggal (SAT 12) merah Tel-U
-- Ornamen TEL-U: logo/teks branding + ring marun halus di tepi
+- `tools/gen_telu.py`: generator aset dan parameter layout.
+- `tools/pack_watchface.py`: packer `.bin` UIHH v2 dengan kompresi ala file asli.
+- `tools/verify_bin.py`: verifikasi hasil build (kompresi, header, dan piksel).
+- `preview.html`: halaman preview interaktif dengan pilihan skenario.
+- `docs/compatibility-fix-v4.md`: catatan teknis lengkap uji di perangkat.
+- `out/validation.json`: ukuran, SHA-256, dan hasil validasi build terakhir.
 
----
+## 🗒️ Riwayat singkat
 
-## Struktur Repo
+| Revisi | Kabar |
+| :--- | :--- |
+| **v4** (12 Sep 2026) | ✅ Berjalan di jam. Warna merah diperbaiki, posisi jam terkunci, always-on sama dengan tampilan utama. |
+| v3 | Perbaikan referensi gambar (ID mulai 1), watchface muncul di koleksi jam. |
+| v2 | Percobaan pertama, preview hitam, belum berhasil. |
 
-```
-telu-amazfit-trex-pro-watchface/
-├── README.md                    <- file ini
-├── preview.html                 <- halaman inspeksi visual (buka langsung)
-├── out/
-│   └── telu_trex_pro.bin        <- WATCHFACE JADI, siap import ke jam
-├── design/
-│   ├── telu-theme.md            <- aturan tema warna + ornamen TEL-U
-│   ├── LAYOUT.md                <- spesifikasi layout final + peta indeks gambar
-│   └── watchface.json           <- layout machine-readable (lama, lihat build/)
-├── build/                       <- output pipeline (gitignored, reproducible)
-│   └── telu/                    <- PNG bernomor 0..41 + preview.png + watchface.json
-├── assets/
-│   ├── 360x360/                 <- bg final + arsip skema lama
-│   └── preview/                 <- mockup final + render dari .bin
-├── tools/
-│   ├── build_all.py             <- SATU perintah build penuh + verifikasi
-│   ├── gen_telu.py              <- generator desain (gambar + watchface.json)
-│   ├── render_mockup.py         <- render mockup dari folder build / dari .bin
-│   ├── pack_watchface.py        <- pack folder build jadi .bin
-│   ├── trexpro_wf.py            <- packer/unpacker mandiri format UIHH_GT2
-│   ├── verify_bin.py            <- verifikasi .bin vs sumber desain
-│   ├── LICENSE.watchface-js    <- atribusi skema/format (GPL-3.0)
-│   ├── gen_assets.py            <- generator lama (arsip)
-│   └── gen_digits.py            <- generator lama (arsip)
-└── docs/
-    ├── build-install.md         <- cara build + instalasi ke jam
-    ├── guide/                   <- panduan lama (referensi)
-    └── research/                <- hasil riset (device, warna, editor, format .bin)
-```
+## 🙏 Kredit & catatan
 
----
+- Font [Anton](https://fonts.google.com/specimen/Anton) dan
+  [Rajdhani](https://fonts.google.com/specimen/Rajdhani) dari Google Fonts
+  (lisensi OFL).
+- Format file dan skema parameter mengacu ke proyek
+  [watchface-js](https://github.com/Nadeflore/watchface-js) oleh Nadeflore
+  (GPL-3.0), dengan implementasi packer sendiri.
+- Warna mengikuti
+  [palet resmi Telkom University](https://it.telkomuniversity.ac.id/kode-warna-logo-telkom-university/).
+- Dibuat oleh [@fathahnoor](https://github.com/fathahnoor), periset aktif di
+  Fakultas Ilmu Terapan, Telkom University. 💙
+- Proyek personal non-komersial. Bukan produk resmi Telkom University, ya.
 
-## Roadmap
-
-- [x] Riset spesifikasi device (T-Rex Pro = 360×360, non-Zepp OS)
-- [x] Riset palet warna resmi Telkom University
-- [x] Setup repo + README
-- [x] Tema & spesifikasi layout (`design/`)
-- [x] Generator asset PNG 360×360 (`tools/gen_assets.py`, `tools/gen_digits.py`)
-- [x] Asset hasil generate: bg, branding, ampm, digit 0–9, preview mockup
-- [x] `design/watchface.json` (layout machine-readable)
-- [x] Panduan build `.bin` via editor komunitas (`docs/build-install.md`)
-- [x] Packer `.bin` mandiri (`tools/trexpro_wf.py`, format UIHH_GT2 tereverse
-      dari 4 file asli + validasi round-trip melawan implementasi referensi)
-- [x] Watchface jadi `out/telu_trex_pro.bin` (43 gambar, preview 220×220)
-- [x] Verifikasi visual: mockup + uji tepi + render ulang dari isi `.bin`
-- [ ] Foto hasil di jam (verifikasi final oleh pemilik jam)
-
----
-
-## Instalasi
-
-File jadi: **`out/telu_trex_pro.bin`** (770 KB, 43 gambar, preview 220×220).
-
-Zepp App versi sekarang tidak bisa pasang `.bin` legacy via Scan (menu itu
-khusus dev-bridge Zepp OS). Untuk T-Rex Pro pakai salah satu:
-- **Gadgetbridge** (Android): pair jam → buka `.bin` lewat Gadgetbridge → install.
-- **AmazFaces**: impor `.bin` → pilih T-Rex Pro → install.
-Detil: `docs/build-install.md`.
-
-Build ulang dari nol (butuh Python + Pillow): `python tools/build_all.py`.
-Detil: `docs/build-install.md`.
-
----
-
-## Referensi
-
-- [Zepp OS Device List (T-Rex Pro = non-Zepp OS, 360×360)](https://docs.zepp.com/docs/reference/related-resources/device-list/)
-- [Kode Warna Logo Telkom University](https://it.telkomuniversity.ac.id/kode-warna-logo-telkom-university/)
-- [Makna Lambang Telkom University](https://telkomuniversity.ac.id/makna-lambang-telkom-university/)
-- [Amazfit Watchface Editor (Android)](https://play.google.com/store/apps/details?id=paolo4c.zepp.wfeditor)
-- Panduan lama: `docs/guide/zepp-os-watchface-guide-original.md`
+**Selamat bergaya, Telyutizen!** Jangan lupa pamer ke teman sekelas. 😎🔴

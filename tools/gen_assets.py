@@ -105,7 +105,7 @@ def make_ampm(label: str = "AM") -> Image.Image:
 
 
 def render_mockup(bg: Image.Image) -> Image.Image:
-    """Mockup layout lengkap untuk preview (bukan asset final — hanya visualisasi)."""
+    """Mockup layout lengkap untuk preview (bukan asset final - hanya visualisasi)."""
     img = bg.copy()
     d = ImageDraw.Draw(img)
 

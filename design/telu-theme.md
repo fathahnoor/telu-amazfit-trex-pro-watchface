@@ -1,4 +1,4 @@
-# Theme Telkom University — TEL-U Watchface
+# Theme Telkom University - TEL-U Watchface
 
 Palet & aturan visual untuk seluruh asset. Angka hex **tanpa alpha**; alpha dicantumkan terpisah.
 
@@ -26,7 +26,7 @@ Palet & aturan visual untuk seluruh asset. Angka hex **tanpa alpha**; alpha dica
 
 ## Ornamen Khas TEL-U
 
-1. **Ring ganda**: lingkaran marun tipis (r=170, lw=1, alpha 35%) + lingkaran merah tipis (r=163, alpha 25%) — mengingatkan lingkaran logo TEL-U.
+1. **Ring ganda**: lingkaran marun tipis (r=170, lw=1, alpha 35%) + lingkaran merah tipis (r=163, alpha 25%) - mengingatkan lingkaran logo TEL-U.
 2. **Tick marker merah** di posisi jam 12 / 3 / 6 / 9 pada ring luar.
 3. **Teks branding** "TELKOM UNIVERSITY" huruf kapital kecil di bawah, tracking lebar.
 4. **Segitiga AM/PM** merah Tel-U (tiruan panah rigger asli, warna diganti).

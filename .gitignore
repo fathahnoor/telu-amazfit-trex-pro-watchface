@@ -18,3 +18,6 @@ node_modules/
 
 # State pelaporan WA (runtime, jangan commit)
 .whatsapp-report.json
+
+# State tooling sesi (runtime, jangan commit)
+.freebuff/

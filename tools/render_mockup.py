@@ -5,7 +5,7 @@ Pakai:
   python tools/render_mockup.py build/telu out/mockup_360.png [--small out/mockup_220.png]
   Data contoh bisa dioverride: --time 0512 --kcal 29 --steps 1115 --hr 97
     --batt 92 --wday 2 --day 12 --ampm AM
-  wday: 0=TUE..6=MON (konvensi T-Rex Pro teramati).
+  wday: 0=MON..6=SUN (konvensi T-Rex Pro teramati).
 """
 
 import json
@@ -37,7 +37,11 @@ def draw_number(canvas, imgs, text_cfg, digits, rng, align, spacing):
         digits = digits.rjust(2, "0")
     cells = [imgs[base + int(ch)] for ch in digits]
     widths = [c.width for c in cells]
+    suffix = node.get("SuffixImage")
+    simg = imgs[suffix["ImageRange"]["ImageIndex"]] if suffix else None
     total = sum(widths) + spacing * (len(cells) - 1)
+    if simg is not None:
+        total += spacing + simg.width
     if align == "Right":
         x = x0 - total
     elif align == "Center":
@@ -63,20 +67,68 @@ def draw_arc(canvas, angle, frac, color):
     start = angle["StartAngle"]
     span = (angle["EndAngle"] - start) % 360
     end = start + span * max(0.0, min(1.0, frac))
-    w = 7
+    w = 5
+    if frac <= 0:
+        return
     # PIL: 0 = jam 3, searah jarum jam
     d.arc([cx - r, cy - r, cx + r, cy + r], start=(start + 270) % 360,
           end=(end + 270) % 360, fill=color, width=w)
+
+
+def as_list(value):
+    return value if isinstance(value, list) else [value]
+
+
+def draw_face(canvas, imgs, time_block, date_block, data_list, args):
+    """Gambar seluruh elemen dinamis; dipakai tampilan utama dan idle."""
+    hms = {e["Type"]: e for e in as_list(time_block["HoursMinutesSeconds"])}
+    hh, mm = args["time"][:2], args["time"][2:]
+    for typ, digits in ((0, hh), (1, mm)):
+        e = hms[typ]
+        txt = e["Text"]
+        rng = txt["Image"]["ImageRange"]["ImageRange"]
+        draw_number(canvas, imgs, txt, digits, rng, txt["Alignment"], txt["Spacing"])
+    ap = time_block["AM" if args["ampm"] == "AM" else "PM"]
+    rng = ap["ImageRange"]["ImageRange"]
+    badge = imgs[rng["ImageIndex"]]
+    canvas.alpha_composite(badge, (ap["Coordinates"]["X"], ap["Coordinates"]["Y"]))
+
+    ymd = {e["Type"]: e for e in as_list(date_block["YearMonthDay"])}
+    e = ymd[2]
+    txt = e["Text"]
+    rng = txt["Image"]["ImageRange"]["ImageRange"]
+    draw_number(canvas, imgs, txt, args["day"], rng, txt["Alignment"], txt["Spacing"])
+    txt = date_block["Week"]["Text"]
+    rng = txt["Image"]["ImageRange"]["ImageRange"]
+    wimg = imgs[rng["ImageIndex"] + int(args["wday"])]
+    x0, y0 = txt["Image"]["X"], txt["Image"]["Y"]
+    align = txt.get("Alignment", "Left")
+    if align == "Right":
+        x0 -= wimg.width
+    elif align == "Center":
+        x0 -= wimg.width // 2
+    canvas.alpha_composite(wimg, (x0, y0))
+
+    data = {e["Type"]: e for e in as_list(data_list)}
+    for key, digits in (("Calories", args["kcal"]), ("Steps", args["steps"]),
+                        ("HeartRate", args["hr"])):
+        e = data[key]["NumberSequence"]
+        txt = e["Text"]
+        rng = txt["Image"]["ImageRange"]["ImageRange"]
+        draw_number(canvas, imgs, txt, digits, rng, txt["Alignment"], txt["Spacing"])
+    e = data["Battery"]
+    draw_arc(canvas, e["CircleScale"]["Angle"], int(args["batt"]) / 100.0, TELU_RED)
+    if "NumberSequence" in e:
+        txt = e["NumberSequence"]["Text"]
+        rng = txt["Image"]["ImageRange"]["ImageRange"]
+        draw_number(canvas, imgs, txt, args["batt"], rng, txt["Alignment"], txt["Spacing"])
 
 
 def main(argv):
     folder = Path(argv[1])
     out = Path(argv[2])
     args = {"time": "0532", "kcal": "29", "steps": "1115", "hr": "97",
-            "batt": "92", "wday": "2", "day": "12", "ampm": "AM"}
-    for a in argv[3:]:
-        if a.startswith("--") and "=" not in a and argv.index(a) + 1 < len(argv):
-            pass
+            "batt": "92", "wday": "5", "day": "12", "ampm": "AM"}
     i = 3
     while i < len(argv):
         if argv[i].startswith("--"):
@@ -94,49 +146,15 @@ def main(argv):
 
     params, imgs = load(folder)
 
-    def as_list(x):
-        return x if isinstance(x, list) else [x]
-
-    canvas = imgs[0].copy()
-
-    t = params["Time"]["Digital"]
-    hms = {e["Type"]: e for e in as_list(t["HoursMinutesSeconds"])}
-    hh, mm = args["time"][:2], args["time"][2:]
-    for typ, digits in ((0, hh), (1, mm)):
-        e = hms[typ]
-        txt = e["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        draw_number(canvas, imgs, txt, digits, rng, txt["Alignment"], txt["Spacing"])
-    ap = t["AM" if args["ampm"] == "AM" else "PM"]
-    rng = ap["ImageRange"]["ImageRange"]
-    badge = imgs[rng["ImageIndex"]]
-    canvas.alpha_composite(badge, (ap["Coordinates"]["X"], ap["Coordinates"]["Y"]))
-
-    data = {e["Type"]: e for e in as_list(params["System"]["Data"])}
-    for key, digits in (("Calories", args["kcal"]), ("Steps", args["steps"]),
-                        ("HeartRate", args["hr"])):
-        e = data[key]["NumberSequence"]
-        txt = e["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        draw_number(canvas, imgs, txt, digits, rng, txt["Alignment"], txt["Spacing"])
-    e = data["Battery"]
-    draw_arc(canvas, e["CircleScale"]["Angle"], int(args["batt"]) / 100.0, TELU_RED)
-    txt = e["NumberSequence"]["Text"]
-    rng = txt["Image"]["ImageRange"]["ImageRange"]
-    draw_number(canvas, imgs, txt, args["batt"], rng, txt["Alignment"], txt["Spacing"])
-
-    ymd = {e["Type"]: e for e in as_list(params["System"]["Date"]["YearMonthDay"])}
-    e = ymd[2]
-    txt = e["Text"]
-    rng = txt["Image"]["ImageRange"]["ImageRange"]
-    draw_number(canvas, imgs, txt, args["day"], rng, txt["Alignment"], txt["Spacing"])
-    e = params["System"]["Date"]["Week"]
-    txt = e["Text"]
-    rng = txt["Image"]["ImageRange"]["ImageRange"]
-    base = rng["ImageIndex"]
-    wimg = imgs[base + int(args["wday"])]
-    x0 = txt["Image"]["X"]
-    canvas.alpha_composite(wimg, (x0, txt["Image"]["Y"]))
+    if args.get("mode") == "idle":
+        idle = params["IdleScreen"]
+        canvas = imgs[idle["BackgroundImageIndex"]].copy()
+        draw_face(canvas, imgs, idle["Time"]["Digital"], idle["Date"],
+                  idle["Data"], args)
+    else:
+        canvas = imgs[0].copy()
+        draw_face(canvas, imgs, params["Time"]["Digital"],
+                  params["System"]["Date"], params["System"]["Data"], args)
 
     canvas.save(out)
     print("mockup:", out)

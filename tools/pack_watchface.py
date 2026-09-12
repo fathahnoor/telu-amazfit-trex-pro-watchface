@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from trexpro_wf import names_to_ids, encode_image, pack  # noqa: E402
+from trexpro_wf import names_to_ids, encode_image, pack, shift_image_ids, validate_image_references  # noqa: E402
 
 
 def load_png_rgba(path):
@@ -30,9 +30,11 @@ def main(argv):
         return 1
     folder = Path(argv[1])
     named = json.loads((folder / "watchface.json").read_text())
-    params = names_to_ids(named)
+    firmware_named = shift_image_ids(named, 1)
+    params = names_to_ids(firmware_named)
     images = []
     pngs = sorted(folder.glob("[0-9]*.png"), key=lambda p: int(p.stem))
+    assert [int(p.stem) for p in pngs] == list(range(len(pngs))), "PNG indices must be contiguous from zero"
     for p in pngs:
         w, h, px = load_png_rgba(p)
         blob = encode_image(px, w, h)
@@ -44,6 +46,8 @@ def main(argv):
         assert (w, h) == (220, 220), "preview harus 220x220, dapat %dx%d" % (w, h)
         images.append(encode_image(px, w, h))
         print("preview: 220x220 -> %d byte (index %d)" % (len(images[-1]), len(images) - 1))
+    validate_image_references(firmware_named, images)
+    (folder / "firmware_params.json").write_text(json.dumps(firmware_named, indent=2))
     out = pack(params, images, compress=True)
     Path(argv[2]).write_bytes(out)
     print("ditulis %s (%d byte, %d gambar, terkompresi)" % (argv[2], len(out), len(images)))

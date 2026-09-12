@@ -4,15 +4,15 @@
 
 ## Rangkuman Temuan
 
-1. **Zepp OS Watchface Maker (official)** — docs.zepp.com. Perangkat yang didukung
+1. **Zepp OS Watchface Maker (official)** - docs.zepp.com. Perangkat yang didukung
    adalah Zepp OS saja; **T-Rex Pro tidak masuk daftar** (non-Zepp OS). QR deploy
    dari tool ini tidak akan valid untuk T-Rex Pro.
-2. **Amazfit Watchface Editor (paolo4c, Android)** — Play Store, rating 4.1 (763 ulasan).
+2. **Amazfit Watchface Editor (paolo4c, Android)** - Play Store, rating 4.1 (763 ulasan).
    Alur: pilih model → desain → export → install. Mendukung model klasik T-Rex.
-3. **SashaCX75 AmazFit Watchface Editor (Windows)** — GitHub releases; changelog
+3. **SashaCX75 AmazFit Watchface Editor (Windows)** - GitHub releases; changelog
    menyebut dukungan T-Rex (sejak Feb 2021).
-4. **amazfitwatchfaces.com** — katalog + forum "How to create watch face [T-Rex Pro]".
-5. Tool legacy (v1ack watchfaceEditor, YueErro) — untuk Bip/Cor; konsep unpack/pack
+4. **amazfitwatchfaces.com** - katalog + forum "How to create watch face [T-Rex Pro]".
+5. Tool legacy (v1ack watchfaceEditor, YueErro) - untuk Bip/Cor; konsep unpack/pack
    .bin sama tapi format beda antar generasi device.
 
 ## Keputusan

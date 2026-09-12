@@ -38,10 +38,10 @@ def number_box(folder, text_cfg, img_index, count, ndigits, suffix_index=None):
     x0, y0 = node["X"], node["Y"]
     cells = [dims(folder, img_index + i)[0] for i in range(count)]
     # lebar terburuk: ndigits digit terlebar + spacing
-    widest = sorted(cells, reverse=True)[:ndigits]
+    widest = [max(cells)] * ndigits
     total = sum(widest) + text_cfg.get("Spacing", 0) * max(0, ndigits - 1)
     if suffix_index is not None:
-        total += dims(folder, suffix_index)[0]
+        total += text_cfg.get("Spacing", 0) + dims(folder, suffix_index)[0]
     h = dims(folder, img_index)[1]
     align = text_cfg.get("Alignment", "Left")
     if align == "Right":
@@ -65,67 +65,63 @@ def main():
         if dist > SAFE_R:
             bad.append(name)
 
-    t = params["Time"]["Digital"]
-    hms = t["HoursMinutesSeconds"]
-    hms = hms if isinstance(hms, list) else [hms]
-    for e in hms:
+    def check_time(prefix, block):
+        hms = block["HoursMinutesSeconds"]
+        hms = hms if isinstance(hms, list) else [hms]
+        for e in hms:
+            txt = e["Text"]
+            rng = txt["Image"]["ImageRange"]["ImageRange"]
+            nd = MAXDIGITS[("Time", e["Type"])]
+            check("%s time type%d" % (prefix, e["Type"]),
+                  *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], nd))
+        for key in ("AM", "PM"):
+            ap = block[key]
+            rng = ap["ImageRange"]["ImageRange"]
+            w, h = dims(folder, rng["ImageIndex"])
+            check("%s %s" % (prefix, key), ap["Coordinates"]["X"],
+                  ap["Coordinates"]["Y"], w, h)
+
+    def check_date(prefix, block):
+        ymd = block["YearMonthDay"]
+        ymd = ymd if isinstance(ymd, list) else [ymd]
+        for e in ymd:
+            txt = e["Text"]
+            rng = txt["Image"]["ImageRange"]["ImageRange"]
+            check("%s day" % prefix,
+                  *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], 2))
+        e = block["Week"]
         txt = e["Text"]
         rng = txt["Image"]["ImageRange"]["ImageRange"]
-        nd = MAXDIGITS[("Time", e["Type"])]
-        check("time type%d" % e["Type"],
-              *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], nd))
-    for key in ("AM", "PM"):
-        ap = t[key]
-        rng = ap["ImageRange"]["ImageRange"]
-        w, h = dims(folder, rng["ImageIndex"])
-        check(key, ap["Coordinates"]["X"], ap["Coordinates"]["Y"], w, h)
+        base, cnt = rng["ImageIndex"], rng["ImagesCount"]
+        for i in range(cnt):
+            w, h = dims(folder, base + i)
+            align = txt.get("Alignment", "Left")
+            x0 = txt["Image"]["X"]
+            x = x0 if align == "Left" else (x0 - w // 2 if align == "Center" else x0 - w)
+            check("%s weekday%d" % (prefix, i), x, txt["Image"]["Y"], w, h)
 
-    for e in params["System"]["Data"]:
-        typ = e["Type"]
-        if "NumberSequence" not in e:
-            continue
-        txt = e["NumberSequence"]["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        nd = MAXDIGITS[(typ,)]
-        suf = None
-        if "SuffixImage" in txt["Image"]:
-            s = txt["Image"]["SuffixImage"]["ImageRange"]
-            suf = s["ImageIndex"]
-        check(typ, *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], nd, suf))
+    def check_data(prefix, entries):
+        for e in entries:
+            if "NumberSequence" not in e:
+                continue
+            txt = e["NumberSequence"]["Text"]
+            rng = txt["Image"]["ImageRange"]["ImageRange"]
+            nd = MAXDIGITS[(e["Type"],)]
+            suf = None
+            if "SuffixImage" in txt["Image"]:
+                s = txt["Image"]["SuffixImage"]["ImageRange"]
+                suf = s["ImageIndex"]
+            check("%s %s" % (prefix, e["Type"]),
+                  *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], nd, suf))
 
-    ymd = params["System"]["Date"]["YearMonthDay"]
-    ymd = ymd if isinstance(ymd, list) else [ymd]
-    for e in ymd:
-        txt = e["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        check("day", *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], 2))
-    e = params["System"]["Date"]["Week"]
-    txt = e["Text"]
-    rng = txt["Image"]["ImageRange"]["ImageRange"]
-    base, cnt = rng["ImageIndex"], rng["ImagesCount"]
-    for i in range(cnt):
-        w, h = dims(folder, base + i)
-        align = txt.get("Alignment", "Left")
-        x0 = txt["Image"]["X"]
-        x = x0 if align == "Left" else (x0 - w // 2 if align == "Center" else x0 - w)
-        check("weekday%d" % i, x, txt["Image"]["Y"], w, h)
+    check_time("main", params["Time"]["Digital"])
+    check_date("main", params["System"]["Date"])
+    check_data("main", params["System"]["Data"])
 
     idle = params["IdleScreen"]
-    thms = idle["Time"]["Digital"]["HoursMinutesSeconds"]
-    thms = thms if isinstance(thms, list) else [thms]
-    for e in thms:
-        txt = e["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        nd = MAXDIGITS[("Time", e["Type"])]
-        check("idle type%d" % e["Type"],
-              *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], nd))
-    e = idle["Date"]["Week"]
-    txt = e["Text"]
-    rng = txt["Image"]["ImageRange"]["ImageRange"]
-    base, cnt = rng["ImageIndex"], rng["ImagesCount"]
-    for i in range(cnt):
-        w, h = dims(folder, base + i)
-        check("idle weekday%d" % i, 180 - w // 2, txt["Image"]["Y"], w, h)
+    check_time("idle", idle["Time"]["Digital"])
+    check_date("idle", idle["Date"])
+    check_data("idle", idle["Data"])
 
     if bad:
         print("GAGAL: %d elemen di luar lingkaran: %s" % (len(bad), bad))

@@ -191,8 +191,7 @@ def decompress_uihh(data, start=COMPRESSION_START):
 # 32 bit (bit31 set) + 31 item (0=literal 1 byte, 1=match, beberapa encoding).
 # ---------------------------------------------------------------------------
 
-CHUNK_EXTRA = bytes([0, 0, 0, 0x10, 0, 0])
-CHUNK_BLOCK = 32768
+CHUNK_BLOCK = 4096
 
 
 def _encode_match(length, distance):
@@ -222,13 +221,13 @@ def _compress_block(block, tail_literals=0):
     while pos < end:
         ceiling = min(33, end - pos)
         best_len, best_dist = 0, 0
-        if ceiling >= 3:
+        if ceiling >= 3 and pos < len(block) - 10:
             key = (block[pos] << 16) | (block[pos + 1] << 8) | block[pos + 2]
             cands = chain.get(key)
             if cands:
                 for prev in reversed(cands[-16:]):
                     dist = pos - prev
-                    if dist > 131071:
+                    if dist < 3 or dist > 131071:
                         continue
                     length = 3
                     while length < ceiling and block[prev + length] == block[pos + length]:
@@ -275,16 +274,21 @@ def _compress_block(block, tail_literals=0):
 
 
 def compress_uihh(body):
-    """Kompresi body (byte 40+) menjadi chunk-chunk 0x4F."""
+    """QuickLZ level 3, 4096-byte blocks and a raw tail, as in T-Rex Pro files.
+
+    Both sizes in the 9-byte QuickLZ header are uint32. A desktop reader
+    that ignores the decompressed-size field cannot verify firmware safety.
+    """
     out = bytearray()
-    blocks = [body[start:start + CHUNK_BLOCK]
-              for start in range(0, len(body), CHUNK_BLOCK)]
-    for bi, blk in enumerate(blocks):
-        last = (bi == len(blocks) - 1)
-        payload = _compress_block(blk, tail_literals=1 if last else 0)
-        total = 9 + len(payload)
-        assert total <= 0xFFFF, "chunk kebesaran: %d" % total
-        out += bytes([0x4F]) + struct.pack("<H", total) + CHUNK_EXTRA + payload
+    full_end = len(body) // CHUNK_BLOCK * CHUNK_BLOCK
+    for start in range(0, full_end, CHUNK_BLOCK):
+        block = body[start:start + CHUNK_BLOCK]
+        payload = _compress_block(block, tail_literals=4)
+        compressed = len(payload) < len(block)
+        payload = payload if compressed else block
+        out += struct.pack("<BII", 0x4F if compressed else 0x4E,
+                           9 + len(payload), len(block)) + payload
+    out += body[full_end:]
     return bytes(out)
 
 
@@ -360,12 +364,9 @@ def decode_image(buf):
 def _decode_32bit(buf):
     width = struct.unpack_from("<I", buf, 4)[0]
     height = struct.unpack_from("<I", buf, 8)[0]
-    pixels = bytearray(4 * width * height)
-    for y in range(height):
-        for x in range(width):
-            pos = 24 + (y * width + x) * 4
-            o = (y * width + x) * 4
-            pixels[o:o + 4] = bytes((buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]))
+    pixels = bytearray(buf[24:24 + 4 * width * height])
+    # Firmware menyimpan kanal B,G,R,A; tukar kembali ke R,G,B,A.
+    pixels[0::4], pixels[2::4] = pixels[2::4], pixels[0::4]
     return width, height, bytes(pixels)
 
 
@@ -448,8 +449,13 @@ def encode_image_24bit(pixels, width, height):
 
 
 def encode_image_32bit(pixels, width, height):
-    """Format 32-bit (0xFFFF) — satu-satunya format yang teramati pada SEMUA
-    gambar di file-file T-Rex Pro asli. RGBA lurus, alpha TIDAK dibalik."""
+    """Format 32-bit (0xFFFF) - satu-satunya format yang teramati pada SEMUA
+    gambar di file-file T-Rex Pro asli. Urutan byte per piksel B,G,R,A.
+
+    Bukti uji jam 2026-09-12: gambar yang ditulis R,G,B,A (alpha terbalik)
+    tampil dengan merah dan biru tertukar - chip "T" Tel-U dan kapsul menit
+    jadi biru. Menulis B,G,R,A membuat warna sama dengan desain.
+    """
     out = bytearray(24 + 4 * width * height)
     out[0:2] = BM_SIG
     struct.pack_into("<H", out, 2, 0xFFFF)
@@ -459,7 +465,9 @@ def encode_image_32bit(pixels, width, height):
     struct.pack_into("<I", out, 16, 24)
     struct.pack_into("<H", out, 20, 1)
     struct.pack_into("<H", out, 22, 0)
-    out[24:] = bytes(pixels)
+    px = bytearray(pixels)
+    px[0::4], px[2::4] = px[2::4], px[0::4]
+    out[24:] = px
     return bytes(out)
 
 
@@ -501,6 +509,45 @@ def image_blob_length(blob):
     return IMG_HEADER + pal * 4 + row * h
 
 
+# Design PNG filenames are zero-based. Serialized T-Rex Pro image IDs are
+# one-based: firmware ID 1 addresses the first entry in the image table.
+IMAGE_ID_FIELDS = {"ImageIndex", "NoDataImageIndex", "BackgroundImageIndex"}
+
+
+def shift_image_ids(node, delta):
+    """Convert only image references, never coordinates, counts or metric types."""
+    if isinstance(node, list):
+        return [shift_image_ids(value, delta) for value in node]
+    if isinstance(node, dict):
+        return {key: value + delta if key in IMAGE_ID_FIELDS else shift_image_ids(value, delta)
+                for key, value in node.items()}
+    return node
+
+
+def validate_image_references(named, images):
+    """Resolve serialized IDs against the actual image table, starting at 1."""
+    def walk(node):
+        if isinstance(node, list):
+            for child in node:
+                walk(child)
+        elif isinstance(node, dict):
+            for key, value in node.items():
+                if key in IMAGE_ID_FIELDS:
+                    count = node.get("ImagesCount", 1) if key == "ImageIndex" else 1
+                    if not isinstance(value, int) or value < 1 or count < 1 or value + count - 1 > len(images):
+                        raise ValueError(f"invalid firmware image reference {key}={value}, count={count}")
+                else:
+                    walk(value)
+    walk(named)
+    bg_id = named["Background"]["ImageIndex"]
+    preview_id = named["Background"]["Preview"]["ImageRange"]["ImageIndex"]
+    if decode_image(images[bg_id - 1])[:2] != (360, 360):
+        raise ValueError("background ID must resolve to a 360x360 image")
+    if decode_image(images[preview_id - 1])[:2] != (220, 220):
+        raise ValueError("preview ID must resolve to a 220x220 image")
+    return {"image_id_base": 1, "background_id": bg_id, "preview_id": preview_id}
+
+
 def pack(parameters, images, compress=False):
     """parameters: dict id(int)->nilai. images: list bytes ter-encode, SEMUA
     gambar reguler (termasuk preview 220x220 sebagai entri terakhir bila ada).
@@ -527,6 +574,9 @@ def pack(parameters, images, compress=False):
         images_info += struct.pack("<I", offset)
         offset += len(blob)
     header = bytearray(HEADER_TEMPLATE)
+    # Hardware ID and format marker observed in all four T-Rex Pro samples.
+    struct.pack_into("<H", header, 16, 83)
+    header[75] = 1
     struct.pack_into("<I", header, PARAM_BUFFER_SIZE_POS, max_len)
     struct.pack_into("<I", header, PARAMS_INFO_SIZE_POS, len(info_blob))
     head = bytes(header[:COMPRESSION_START])
@@ -542,6 +592,46 @@ def pack(parameters, images, compress=False):
     if compress:
         tail = compress_uihh(tail)
     return head + tail
+
+
+def validate_trexpro_container(data):
+    """Strict checks for the container fields used by the device loader.
+
+    The generic desktop unpacker intentionally accepts more files. In
+    particular it does not enforce the QuickLZ decompressed-size header.
+    """
+    if len(data) < 40 or data[:6] != b"UIHH\x02\x00":
+        raise ValueError("invalid UIHH v2 signature")
+    if struct.unpack_from("<H", data, 16)[0] != 83:
+        raise ValueError("wrong device ID: expected T-Rex Pro global (83)")
+    expected = struct.unpack_from("<I", data, 32)[0]
+    output = bytearray(data[:40])
+    offset = 40
+    blocks = 0
+    if data[40] in CHUNK_MAGIC:
+        while expected - (len(output) - 40) >= CHUNK_BLOCK:
+            if offset + 9 > len(data):
+                raise ValueError("truncated QuickLZ header")
+            flag, packed, expanded = struct.unpack_from("<BII", data, offset)
+            if flag not in CHUNK_MAGIC or expanded != CHUNK_BLOCK:
+                raise ValueError("QuickLZ block must declare 4096 bytes")
+            if packed < 9 or offset + packed > len(data):
+                raise ValueError("invalid QuickLZ packed length")
+            block = decompress_uihh(data[offset:offset + packed], 0)
+            if len(block) != expanded:
+                raise ValueError("QuickLZ declared size differs from actual output")
+            output.extend(block)
+            offset += packed
+            blocks += 1
+    output.extend(data[offset:])
+    if len(output) - 40 != expected:
+        raise ValueError("container decompressed length mismatch")
+    if len(output) < HEADER_SIZE or output[75] != 1:
+        raise ValueError("T-Rex Pro header marker at offset 75 must be 1")
+    return {"device_id": 83, "quicklz_blocks": blocks,
+            "decoded_block_bytes": CHUNK_BLOCK if blocks else 0,
+            "raw_tail_bytes": len(data) - offset if blocks else 0,
+            "format_marker": 1}
 
 
 def unpack(data):

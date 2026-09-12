@@ -1,3 +1,8 @@
+> Koreksi audit v3: referensi gambar firmware dimulai dari 1. Klaim lama tentang
+> preview menggantung dan urutan TUE..MON di bawah berasal dari pembacaan
+> indeks yang salah. Lihat `../compatibility-fix-v3.md` untuk hasil terbaru.
+> Packer terkini juga memakai kompresi QuickLZ 4096 byte dan device ID 83.
+
 # Research: Format .bin T-Rex Pro (UIHH_GT2)
 
 **Tanggal:** 2026-09-12
@@ -7,14 +12,14 @@ validasi silang dengan implementasi referensi (watchface-js, Nadeflore).
 ## Temuan Utama
 
 1. T-Rex Pro **bukan** format "HMDIAL" (dipakai GTR/Verge/T-Rex gen 1 via
-   WatchFace.exe EXOMODE), melainkan kontainer **"UIHH" versi 2** — satu
+   WatchFace.exe EXOMODE), melainkan kontainer **"UIHH" versi 2** - satu
    keluarga dengan GTR 2. Signature 4 byte pertama: `55 49 48 48` ("UIHH").
 2. File asli di katalog umumnya **terkompresi** (chunk LZ77 kustom mulai byte 40,
    magic `0x4F`/`0x4E`). Packer repo ini menulis **uncompressed** (byte 40 =
-   `0xFF`) — didukung reader referensi dan (sesuai struktur format) jam.
+   `0xFF`) - didukung reader referensi dan (sesuai struktur format) jam.
 3. Layout 88-byte header: signature (0-3), version `02 00` (4-5),
    `maxParamLength` u32 di offset 76, `paramsInfoSize` u32 di offset 80.
-   Byte lain (12-23, 32-35, ...) berbeda antar file asli dan diabaikan reader —
+   Byte lain (12-23, 32-35, ...) berbeda antar file asli dan diabaikan reader -
    disalin dari template yang juga berasal dari file asli.
 4. Parameters: struktur protobuf-like (varint 7-bit; key = descriptor>>3;
    flag `0x02` = punya anak (blok N byte); flag `0x05` = float32 LE).
