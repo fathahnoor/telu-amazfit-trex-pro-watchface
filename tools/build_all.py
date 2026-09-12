@@ -50,6 +50,7 @@ def main():
     # Alias dengan nama produk baru.
     shutil.copyfile(ROOT / "out/telu_trex_pro.bin",
                     ROOT / "out/telu_university_v5.bin")
+    run("tools/refresh_gallery.py")
     print("BUILD OK -> out/telu_trex_pro.bin (alias: out/telu_university_v5.bin)")
 
 

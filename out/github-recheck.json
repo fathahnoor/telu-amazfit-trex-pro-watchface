@@ -1,0 +1,56 @@
+{
+  "github_commit": "1c2cb65935abd023a6c1e2e9ddf25a18050662c4",
+  "files": {
+    "telu_trex_pro.bin": {
+      "sha256": "9b677b35133f275410234c1ec4503e50b3d8d837f28cf150c1dcbc038391b370",
+      "matches_local": true
+    },
+    "telu_university_v5.bin": {
+      "sha256": "9b677b35133f275410234c1ec4503e50b3d8d837f28cf150c1dcbc038391b370",
+      "matches_local": true
+    },
+    "preview_max.png": {
+      "sha256": "1975d25fb4da979bba7acb060480f23ceaea27b16bbaa1eca4f95667f4fa1d1a",
+      "matches_local": true
+    }
+  },
+  "angles": {
+    "normal": {
+      "Battery": [
+        0.0,
+        360.0
+      ],
+      "Steps": [
+        0.0,
+        360.0
+      ],
+      "Calories": [
+        0.0,
+        360.0
+      ],
+      "HeartRate": [
+        0.0,
+        360.0
+      ]
+    },
+    "idle": {
+      "Battery": [
+        0.0,
+        360.0
+      ],
+      "Steps": [
+        0.0,
+        360.0
+      ],
+      "Calories": [
+        0.0,
+        360.0
+      ],
+      "HeartRate": [
+        0.0,
+        360.0
+      ]
+    }
+  },
+  "simulation_matches_github_preview": true
+}
