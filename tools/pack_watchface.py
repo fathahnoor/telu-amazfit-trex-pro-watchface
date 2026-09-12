@@ -44,9 +44,9 @@ def main(argv):
         assert (w, h) == (220, 220), "preview harus 220x220, dapat %dx%d" % (w, h)
         images.append(encode_image(px, w, h))
         print("preview: 220x220 -> %d byte (index %d)" % (len(images[-1]), len(images) - 1))
-    out = pack(params, images)
+    out = pack(params, images, compress=True)
     Path(argv[2]).write_bytes(out)
-    print("ditulis %s (%d byte, %d gambar)" % (argv[2], len(out), len(images)))
+    print("ditulis %s (%d byte, %d gambar, terkompresi)" % (argv[2], len(out), len(images)))
     return 0
 
 

@@ -186,6 +186,109 @@ def decompress_uihh(data, start=COMPRESSION_START):
 
 
 # ---------------------------------------------------------------------------
+# Kompresi chunk LZ77 (meniru file asli; terverifikasi round-trip).
+# Chunk: [0x4F][u16 total][00 00 00 10 00 00][payload]. Payload = deskriptor
+# 32 bit (bit31 set) + 31 item (0=literal 1 byte, 1=match, beberapa encoding).
+# ---------------------------------------------------------------------------
+
+CHUNK_EXTRA = bytes([0, 0, 0, 0x10, 0, 0])
+CHUNK_BLOCK = 32768
+
+
+def _encode_match(length, distance):
+    if length == 3 and distance < 64:
+        return bytes([(distance << 2) | 0])
+    if length == 3 and distance < 16384:
+        return struct.pack("<H", (distance << 2) | 1)
+    if 3 <= length <= 18 and distance < 1024:
+        return struct.pack("<H", (distance << 6) | ((length - 3) << 2) | 2)
+    if 3 <= length <= 33 and distance < 131072:
+        v = (distance << 7) | ((length - 2) << 2) | 3
+        return bytes([v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF])
+    # panjang: pecah jadi beberapa match (ditangani pemanggil via cap 33)
+    raise ValueError("match tak ter-encode: %d/%d" % (length, distance))
+
+
+def _compress_block(block, tail_literals=0):
+    """tail_literals: paksa N byte terakhir jadi literal (agar chunk/file
+    tak berakhir tepat di match multi-byte yang membuat decoder referensi
+    over-read melewati EOF)."""
+    out = bytearray()
+    items = []  # (is_match, payload_bytes)
+    # rantai hash trigram -> posisi-posisi terakhir (pencocokan cepat)
+    chain = {}
+    pos = 0
+    end = len(block) - tail_literals
+    while pos < end:
+        ceiling = min(33, end - pos)
+        best_len, best_dist = 0, 0
+        if ceiling >= 3:
+            key = (block[pos] << 16) | (block[pos + 1] << 8) | block[pos + 2]
+            cands = chain.get(key)
+            if cands:
+                for prev in reversed(cands[-16:]):
+                    dist = pos - prev
+                    if dist > 131071:
+                        continue
+                    length = 3
+                    while length < ceiling and block[prev + length] == block[pos + length]:
+                        length += 1
+                    if length > best_len:
+                        best_len, best_dist = length, dist
+                        if best_len >= ceiling:
+                            break
+            lst = chain.get(key)
+            if lst is None:
+                chain[key] = [pos]
+            else:
+                lst.append(pos)
+                if len(lst) > 64:
+                    del lst[:32]
+        if best_len:
+            items.append((1, _encode_match(best_len, best_dist)))
+            # daftarkan trigram di dalam match agar rantai tetap akurat
+            for k in range(pos + 1, min(pos + best_len, len(block) - 2)):
+                kk = (block[k] << 16) | (block[k + 1] << 8) | block[k + 2]
+                ll = chain.get(kk)
+                if ll is None:
+                    chain[kk] = [k]
+                else:
+                    ll.append(k)
+                    if len(ll) > 64:
+                        del ll[:32]
+            pos += best_len
+        else:
+            items.append((0, bytes([block[pos]])))
+            pos += 1
+    for k in range(len(block) - tail_literals, len(block)):
+        items.append((0, bytes([block[k]])))
+    for i in range(0, len(items), 31):
+        group = items[i:i + 31]
+        desc = 0x80000000
+        for j, (is_match, _) in enumerate(group):
+            if is_match:
+                desc |= 1 << j
+        out += struct.pack("<I", desc)
+        for _, payload in group:
+            out += payload
+    return bytes(out)
+
+
+def compress_uihh(body):
+    """Kompresi body (byte 40+) menjadi chunk-chunk 0x4F."""
+    out = bytearray()
+    blocks = [body[start:start + CHUNK_BLOCK]
+              for start in range(0, len(body), CHUNK_BLOCK)]
+    for bi, blk in enumerate(blocks):
+        last = (bi == len(blocks) - 1)
+        payload = _compress_block(blk, tail_literals=1 if last else 0)
+        total = 9 + len(payload)
+        assert total <= 0xFFFF, "chunk kebesaran: %d" % total
+        out += bytes([0x4F]) + struct.pack("<H", total) + CHUNK_EXTRA + payload
+    return bytes(out)
+
+
+# ---------------------------------------------------------------------------
 # Gambar: bitmap proprietary signature 0x424D ("BM" little endian).
 # ---------------------------------------------------------------------------
 
@@ -344,11 +447,24 @@ def encode_image_24bit(pixels, width, height):
     return bytes(out)
 
 
+def encode_image_32bit(pixels, width, height):
+    """Format 32-bit (0xFFFF) — satu-satunya format yang teramati pada SEMUA
+    gambar di file-file T-Rex Pro asli. RGBA lurus, alpha TIDAK dibalik."""
+    out = bytearray(24 + 4 * width * height)
+    out[0:2] = BM_SIG
+    struct.pack_into("<H", out, 2, 0xFFFF)
+    struct.pack_into("<I", out, 4, width)
+    struct.pack_into("<I", out, 8, height)
+    struct.pack_into("<I", out, 12, 32)
+    struct.pack_into("<I", out, 16, 24)
+    struct.pack_into("<H", out, 20, 1)
+    struct.pack_into("<H", out, 22, 0)
+    out[24:] = bytes(pixels)
+    return bytes(out)
+
+
 def encode_image(pixels, width, height):
-    try:
-        return encode_image_indexed(pixels, width, height, 8)
-    except ImageNotSupportedError:
-        return encode_image_24bit(pixels, width, height)
+    return encode_image_32bit(pixels, width, height)
 
 
 # ---------------------------------------------------------------------------
@@ -385,12 +501,13 @@ def image_blob_length(blob):
     return IMG_HEADER + pal * 4 + row * h
 
 
-def pack(parameters, images):
+def pack(parameters, images, compress=False):
     """parameters: dict id(int)->nilai. images: list bytes ter-encode, SEMUA
     gambar reguler (termasuk preview 220x220 sebagai entri terakhir bila ada).
 
     Meniru file asli: stored count = len(images)+1, tabel berisi len(images)
     entri offset. Referensi preview di parameters menunjuk indeks sebenarnya.
+    compress=True: body (byte 40+) dikompresi chunk 0x4F seperti file asli.
     """
     params_info = {"1": {"1": 0, "2": len(images) + 1}}
     blobs = []
@@ -412,10 +529,19 @@ def pack(parameters, images):
     header = bytearray(HEADER_TEMPLATE)
     struct.pack_into("<I", header, PARAM_BUFFER_SIZE_POS, max_len)
     struct.pack_into("<I", header, PARAMS_INFO_SIZE_POS, len(info_blob))
-    out = bytes(header) + info_blob + b"".join(blobs) + bytes(images_info)
+    head = bytes(header[:COMPRESSION_START])
+    tail = bytes(header[COMPRESSION_START:]) + info_blob + b"".join(blobs) + bytes(images_info)
     for blob in images:
-        out += blob
-    return out
+        tail += blob
+    # @32 = ukuran body terdekompresi setelah 40 byte header (terbukti konsisten
+    # pada semua file asli: @32 == declen - 40). Ditulis ke head agar valid
+    # baik untuk file compressed maupun uncompressed.
+    head = bytearray(head)
+    struct.pack_into("<I", head, 32, COMPRESSION_START + len(tail) - 40)
+    head = bytes(head)
+    if compress:
+        tail = compress_uihh(tail)
+    return head + tail
 
 
 def unpack(data):
