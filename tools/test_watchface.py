@@ -9,7 +9,7 @@ from PIL import Image
 
 from gen_telu import make_digit, F_INTER, TIME_CELL, svg_icon, HEART
 from check_layout import layout_errors
-from render_mockup import load
+from render_mockup import load, draw_number, draw_date
 from check_round import number_box
 from trexpro_wf import (validate_trexpro_container, unpack, ids_to_names,
                         decode_image, encode_image)
@@ -171,6 +171,38 @@ class WatchfaceV5Tests(unittest.TestCase):
 
     def test_dynamic_variants_do_not_overlap(self):
         self.assertEqual(layout_errors(ROOT / 'build/verified_bin'), [])
+
+    def test_metric_groups_stay_centered_for_every_digit_length(self):
+        params, images = load(ROOT / 'build/verified_bin')
+        cases = {'Steps': (5, [0, 1, 7, 12, 99, 100, 999, 1000, 9999, 99999]),
+                 'HeartRate': (3, [0, 7, 72, 199]),
+                 'Calories': (4, [0, 7, 35, 560, 9999]),
+                 'Battery': (3, [0, 1, 7, 82, 100])}
+        for entry in params['System']['Data']:
+            if entry['Type'] not in cases:
+                continue
+            maximum, values = cases[entry['Type']]
+            txt = entry['NumberSequence']['Text']
+            self.assertEqual(txt['Alignment'], 'Center')
+            for value in values:
+                canvas = Image.new('RGBA', (360, 360))
+                draw_number(canvas, images, txt, value, max_digits=maximum)
+                box = canvas.getbbox()
+                self.assertLessEqual(abs((box[0] + box[2]) / 2 -
+                                         entry['CircleScale']['Angle']['X']), 0.5,
+                                     (entry['Type'], value, box))
+
+    def test_all_date_combinations_stay_centered(self):
+        params, images = load(ROOT / 'build/verified_bin')
+        for weekday in range(7):
+            for day in range(1, 32):
+                for month in range(1, 13):
+                    canvas = Image.new('RGBA', (360, 360))
+                    draw_date(canvas, images, params['System']['Date'],
+                              dict(wday=weekday, day=day, month=month))
+                    box = canvas.getbbox()
+                    self.assertLessEqual(abs((box[0] + box[2]) / 2 - 180), 0.5,
+                                         (weekday, day, month, box))
 
     def test_colored_svg_keeps_transparent_corners(self):
         icon = svg_icon(ROOT / 'assets/heart.svg', 30, fill=HEART)
