@@ -23,12 +23,14 @@ def run(*args):
 def main():
     run("tools/gen_telu.py")
     run("tools/check_round.py", "build/telu")
+    run("tools/check_layout.py", "build/telu")
     run("tools/render_mockup.py", "build/telu", "build/mockup_360.png",
         "--small", "build/mockup_220.png")
     shutil.copy(ROOT / "build" / "mockup_220.png", ROOT / "build" / "telu" / "preview.png")
     (ROOT / "out").mkdir(exist_ok=True)
     run("tools/pack_watchface.py", "build/telu", "out/telu_trex_pro.bin")
     run("tools/verify_bin.py")
+    run("tools/check_layout.py", "build/verified_bin")
     # Preview dari bin yang sudah diverifikasi (round-trip).
     run("tools/render_mockup.py", "build/verified_bin", "out/preview.png")
     run("tools/render_mockup.py", "build/verified_bin", "out/preview_max.png",
@@ -38,7 +40,7 @@ def main():
     run("tools/render_mockup.py", "build/verified_bin", "out/preview_zero.png",
         "--time", "0007", "--steps", "0", "--kcal", "0", "--hr", "0",
         "--batt", "0", "--day", "1", "--wday", "2", "--month", "1",
-        "--temp", "-8", "--cond", "12")
+        "--temp", "0", "--cond", "12")
     run("tools/render_mockup.py", "build/verified_bin", "out/preview_idle.png",
         "--mode", "idle")
     run("tools/render_mockup.py", "build/verified_bin", "out/preview_sunrise.png",

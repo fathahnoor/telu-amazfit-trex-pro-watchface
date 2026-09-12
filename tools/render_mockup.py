@@ -71,7 +71,9 @@ def draw_gauge(canvas, imgs, entry, frac, radius_offset=0):
     if "CircleScale" not in entry or frac is None:
         return
     angle = entry["CircleScale"]["Angle"]
-    d = ImageDraw.Draw(canvas)
+    ss = 4
+    layer = Image.new("RGBA", (canvas.width * ss, canvas.height * ss))
+    d = ImageDraw.Draw(layer)
     cx, cy, r = angle["X"], angle["Y"], angle["Radius"] + radius_offset
     start = angle["StartAngle"]
     span = (angle["EndAngle"] - start) % 360 or 360
@@ -79,8 +81,10 @@ def draw_gauge(canvas, imgs, entry, frac, radius_offset=0):
     w = entry["CircleScale"].get("Width", 7)
     if frac <= 0:
         return
-    d.arc([cx - r, cy - r, cx + r, cy + r], start=(start + 270) % 360,
-          end=(end + 270) % 360, fill=RED, width=w)
+    d.arc([(cx - r) * ss, (cy - r) * ss, (cx + r) * ss, (cy + r) * ss],
+          start=(start + 270) % 360, end=(end + 270) % 360,
+          fill=RED, width=w * ss)
+    canvas.alpha_composite(layer.resize(canvas.size, Image.LANCZOS))
 
 
 def draw_time(canvas, imgs, block, args, date_shift=(0, 0)):

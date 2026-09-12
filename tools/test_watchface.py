@@ -2,11 +2,14 @@
 import json
 import struct
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from PIL import Image
 
-from gen_telu import make_digit, F_INTER
+from gen_telu import make_digit, F_INTER, TIME_CELL, svg_icon, HEART
+from check_layout import layout_errors
+from render_mockup import load
 from check_round import number_box
 from trexpro_wf import (validate_trexpro_container, unpack, ids_to_names,
                         decode_image, encode_image)
@@ -54,7 +57,7 @@ class WatchfaceV5Tests(unittest.TestCase):
             for i in range(10):
                 blob = self.images[rng['ImageIndex'] + i - 1]
                 w, h, px = decode_image(blob)
-                self.assertEqual((w, h), (40, 56))
+                self.assertEqual((w, h), TIME_CELL)
                 reds = sum(1 for p in range(0, len(px), 4)
                            if px[p] > 180 and px[p + 1] < 120)
                 if expect_red:
@@ -159,6 +162,22 @@ class WatchfaceV5Tests(unittest.TestCase):
             cx = data['CircleScale']['Angle']['X']
             self.assertLessEqual(abs(x + w / 2 - cx), rings[name], name)
             self.assertLessEqual(w / 2, rings[name], name)
+
+    def test_dynamic_variants_do_not_overlap(self):
+        self.assertEqual(layout_errors(ROOT / 'build/verified_bin'), [])
+
+    def test_colored_svg_keeps_transparent_corners(self):
+        icon = svg_icon(ROOT / 'assets/heart.svg', 30, fill=HEART)
+        self.assertEqual(icon.getpixel((0, 0))[3], 0)
+        self.assertGreater(icon.getpixel((icon.width // 2, icon.height // 2))[3], 200)
+
+    def test_layout_checker_rejects_time_metric_collision(self):
+        params, images = load(ROOT / 'build/verified_bin')
+        heart = next(e for e in params['System']['Data'] if e['Type'] == 'HeartRate')
+        heart['NumberSequence']['Text']['Image'].update(X=200, Y=150)
+        with patch('check_layout.load', return_value=(params, images)):
+            errors = layout_errors('unused')
+        self.assertTrue(any('time-1 overlaps HeartRate' in e for e in errors), errors)
 
 
 if __name__ == '__main__':

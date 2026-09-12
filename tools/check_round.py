@@ -46,11 +46,18 @@ def number_box(folder, text_cfg, ndigits, suffix_index=None, delim_index=None):
     cells = [dims(folder, rng["ImageIndex"] + i) for i in range(rng["ImagesCount"])]
     cell_w = max(c[0] for c in cells)
     cell_h = max(c[1] for c in cells)
-    total = cell_w * ndigits
+    total = cell_w * ndigits + text_cfg.get("Spacing", 0) * max(0, ndigits - 1)
+    decimal = node.get("DecimalPointImageIndex")
+    if decimal is not None:
+        dw, dh = dims(folder, decimal)
+        total += dw
+        cell_h = max(cell_h, dh)
     if ndigits >= 4 and delim_index is not None:
         total += dims(folder, delim_index)[0]
     if suffix_index is not None:
-        total += dims(folder, suffix_index)[0]
+        sw, sh = dims(folder, suffix_index)
+        total += sw
+        cell_h = max(cell_h, sh)
     align = text_cfg.get("Alignment", "Left")
     if align == "Right":
         x = x0 - total
