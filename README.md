@@ -3,8 +3,9 @@
 Edisi **TELKOM UNIVERSITY** untuk Amazfit T-Rex Pro, dengan ilustrasi kampus,
 angka jam dan menit putih, cuaca, waktu matahari, dan empat metrik aktivitas.
 Preview v5 sudah diperbaiki dan diperiksa dari hasil ekstraksi `.bin`.
-**Versi v5 ini masih menunggu uji di jam.** Hasil uji perangkat sebelumnya
-berlaku untuk v4.
+Foto perangkat di galeri menunjukkan v5 tampil pada jam fisik, sebelum
+perubahan menit menjadi putih. Revisi putih terbaru dan seluruh perilaku
+dinamisnya masih memerlukan pemeriksaan di perangkat.
 
 ![Tampilan utama TELKOM UNIVERSITY](out/gallery/preview-e68e2b786c07.png)
 
@@ -41,13 +42,15 @@ berlaku untuk v4.
 | :---: | :---: |
 | ![Always-on](out/gallery/preview_idle-e68e2b786c07.png) | ![Nilai maksimum](out/gallery/preview_max-d9303f77404f.png) |
 
-| Nilai nol, seluruh angka pendek |
-| :---: |
-| ![Nilai nol rata tengah](out/gallery/preview_zero-421558af82cb.png) |
+| Nilai nol, seluruh angka pendek | Foto jam fisik, v5 menit merah |
+| :---: | :---: |
+| ![Nilai nol rata tengah](out/gallery/preview_zero-421558af82cb.png) | ![Foto v5 pada Amazfit T-Rex Pro](photo/v5-physical-cropped.png) |
 
-*Semua gambar adalah render dari isi file `.bin` yang sudah diverifikasi
-(simulasi), bukan foto jam - biar kamu bisa lihat semua skenario tampilan
-sebelum pasang.*
+*Lima gambar skenario adalah simulasi dari isi `.bin`. Gambar berlabel
+"Foto jam fisik" berasal dari [foto asli pengguna](photo/v5.jpeg), di-crop
+persegi dan diperkecil menjadi 360 x 360 px tanpa mengubah isi layar.
+Foto memperlihatkan v5 dengan menit merah, sebelum revisi menit putih;
+foto tunggal ini tidak membuktikan seluruh perilaku dinamis atau always-on.*
 
 Gambar galeri memakai nama berdasarkan hash isi PNG agar versi baru memiliki
 alamat baru. Audit unduhan GitHub untuk revisi cincin penuh sebelum perubahan warna jam ada di
