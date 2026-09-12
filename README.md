@@ -1,17 +1,18 @@
 # 🎓 TELKOM UNIVERSITY | Watchface Amazfit T-Rex Pro
 
 Edisi **TELKOM UNIVERSITY** untuk Amazfit T-Rex Pro, dengan ilustrasi kampus,
-jam putih-merah, cuaca, waktu matahari, dan empat metrik aktivitas.
+angka jam dan menit putih, cuaca, waktu matahari, dan empat metrik aktivitas.
 Preview v5 sudah diperbaiki dan diperiksa dari hasil ekstraksi `.bin`.
 **Versi v5 ini masih menunggu uji di jam.** Hasil uji perangkat sebelumnya
 berlaku untuk v4.
 
-![Tampilan utama TELKOM UNIVERSITY](out/gallery/preview-0e861f8fb438.png)
+![Tampilan utama TELKOM UNIVERSITY](out/gallery/preview-e68e2b786c07.png)
 
 ## Tampilan terbaru
 
 - 🏛️ **Wajah kampus** dengan logo dan ilustrasi kampus Tel-U.
-- 🕐 **Jam besar, warna berpasangan** - putih di kiri, merah di kanan.
+- 🕐 **Jam besar berwarna putih** - angka jam dan menit sama-sama putih,
+  dengan titik dua merah. Berlaku pada mode normal dan always-on.
 - ☀️ **Cuaca + jarum matahari:** suhu terkini dan satu penghitung pintar yang
   disiapkan untuk **matahari terbit/terbenam**. Pergantian otomatisnya
   masih perlu diperiksa di perangkat.
@@ -34,22 +35,22 @@ berlaku untuk v4.
 
 | Siang hari ☀️ | Matahari terbit 🌅 |
 | :---: | :---: |
-| ![Tampilan utama](out/gallery/preview-0e861f8fb438.png) | ![Situasi matahari terbit](out/gallery/preview_sunrise-c607d31595c0.png) |
+| ![Tampilan utama](out/gallery/preview-e68e2b786c07.png) | ![Situasi matahari terbit](out/gallery/preview_sunrise-9dc7ecbb33cb.png) |
 
 | Always-on 🌙 | Data maksimum 💪 |
 | :---: | :---: |
-| ![Always-on](out/gallery/preview_idle-0e861f8fb438.png) | ![Nilai maksimum](out/gallery/preview_max-1975d25fb4da.png) |
+| ![Always-on](out/gallery/preview_idle-e68e2b786c07.png) | ![Nilai maksimum](out/gallery/preview_max-d9303f77404f.png) |
 
 | Nilai nol, seluruh angka pendek |
 | :---: |
-| ![Nilai nol rata tengah](out/gallery/preview_zero-8c4d63e06cce.png) |
+| ![Nilai nol rata tengah](out/gallery/preview_zero-421558af82cb.png) |
 
 *Semua gambar adalah render dari isi file `.bin` yang sudah diverifikasi
 (simulasi), bukan foto jam - biar kamu bisa lihat semua skenario tampilan
 sebelum pasang.*
 
 Gambar galeri memakai nama berdasarkan hash isi PNG agar versi baru memiliki
-alamat baru. Audit unduhan langsung GitHub ada di
+alamat baru. Audit unduhan GitHub untuk revisi cincin penuh sebelum perubahan warna jam ada di
 [`out/github-recheck.json`](out/github-recheck.json): kedua BIN identik dengan
 file lokal, keempat sudut cincin 0 sampai 360 derajat, dan simulasi ulang dari
 BIN unduhan identik per piksel dengan preview maksimum di GitHub.
