@@ -15,6 +15,9 @@ berlaku untuk v4.
 - ☀️ **Cuaca + jarum matahari:** suhu terkini dan satu penghitung pintar yang
   disiapkan untuk **matahari terbit/terbenam**. Pergantian otomatisnya
   masih perlu diperiksa di perangkat.
+- **Cincin penuh 360 derajat:** keempat cincin merah menutup satu lingkaran
+  saat progres mencapai maksimum. Progres dimulai dari atas dan bergerak
+  searah jarum jam. Berlaku pada mode normal dan always-on.
 - **Angka rata tengah:** nilai STEPS, BPM, POWER, dan KCAL tetap di tengah
   saat jumlah digit berubah. Persen baterai dipusatkan bersama angkanya;
   label tiap cincin juga berada di tengah.
@@ -96,10 +99,18 @@ python -m unittest discover -s tools -p "test_*.py"
 - [`docs/layout-repair-v5.md`](docs/layout-repair-v5.md): penyebab tumpukan,
   perbaikan, dan hasil pengujian layout.
 
-Validasi terbaru: 20 test lulus, termasuk angka dengan berbagai panjang
+Validasi terbaru: 21 test lulus, termasuk angka dengan berbagai panjang
 hingga nilai maksimum, 2.604 kombinasi hari/tanggal/bulan, dan kesamaan
 piksel mode normal dengan always-on. Selisih pusat hasil render maksimal
 0,5 piksel. Pemeriksaan tabrakan serta batas layar bulat juga lulus.
+Cincin diuji pada progres 0%, 50%, 100%, dan di atas 100%; lingkaran penuh
+diperiksa pada setiap sudut derajat agar tidak ada celah.
+
+Preview memakai batas simulasi 10.000 langkah, 220 BPM, 1.000 kcal, dan
+baterai 100%. Ini skala render, bukan anjuran target aktivitas. Nilai progres
+aktual pada jam mengikuti firmware dan pengaturan perangkat; pemetaannya
+belum diverifikasi langsung. Gambar nilai maksimum memperlihatkan keempat
+cincin penuh.
 
 Rata tengah memakai parameter alignment dalam `.bin`; preview mengikuti
 perhitungan editor komunitas. Perilaku alignment pada firmware jam masih
@@ -109,7 +120,7 @@ perlu diperiksa langsung. Hasil simulasi tidak dianggap sebagai uji perangkat.
 
 | Revisi | Kabar |
 | :--- | :--- |
-| **v5** (12 Sep 2026) | 🎓 Edisi **TELKOM UNIVERSITY**: wajah kampus, modul cuaca + matahari terbit/terbenam, empat metrik rata tengah, tanggal singkat dengan font seragam, dan always-on lengkap yang sama dengan mode normal. |
+| **v5** (12 Sep 2026) | 🎓 Edisi **TELKOM UNIVERSITY**: wajah kampus, modul cuaca + matahari terbit/terbenam, cincin penuh 360 derajat saat maksimum, empat metrik rata tengah, tanggal singkat dengan font seragam, dan always-on lengkap yang sama dengan mode normal. |
 | v4 (12 Sep 2026) | ✅ Berjalan di jam. Warna merah diperbaiki, posisi jam terkunci, always-on sama dengan tampilan utama. |
 | v3 | Perbaikan referensi gambar (ID mulai 1), watchface muncul di koleksi jam. |
 | v2 | Percobaan pertama, preview hitam, belum berhasil. |
