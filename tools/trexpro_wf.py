@@ -511,7 +511,8 @@ def image_blob_length(blob):
 
 # Design PNG filenames are zero-based. Serialized T-Rex Pro image IDs are
 # one-based: firmware ID 1 addresses the first entry in the image table.
-IMAGE_ID_FIELDS = {"ImageIndex", "NoDataImageIndex", "BackgroundImageIndex"}
+IMAGE_ID_FIELDS = {"ImageIndex", "NoDataImageIndex", "BackgroundImageIndex",
+                   "DecimalPointImageIndex", "DelimiterImageIndex"}
 
 
 def shift_image_ids(node, delta):
@@ -707,6 +708,7 @@ SCHEMA = {
             },
             "3:Data": {
                 "1:Type": "datatype",
+                "2:ProgressPointer": "Pointer",
                 "3:CircleScale": {
                     "1:Angle": {
                         "1:X": "int",
@@ -720,6 +722,11 @@ SCHEMA = {
                     "5:Width": "int",
                     "6:Flatness": "int",
                     "8:ImageIndex": "imgid",
+                },
+                "4:Linear": {
+                    "1:Segments": "Coordinates",
+                    "2:ImageRange": "ImageRange",
+                    "3:Unknown3": "int",
                 },
                 "5:NumberSequence": "NumberSequence",
                 "7:Icon": "PositionedImage",
@@ -739,6 +746,7 @@ SCHEMA = {
             },
             "3:Data": {
                 "1:Type": "datatype",
+                "2:ProgressPointer": "Pointer",
                 "3:CircleScale": {
                     "1:Angle": {
                         "1:X": "int",
@@ -753,7 +761,13 @@ SCHEMA = {
                     "6:Flatness": "int",
                     "8:ImageIndex": "imgid",
                 },
+                "4:Linear": {
+                    "1:Segments": "Coordinates",
+                    "2:ImageRange": "ImageRange",
+                    "3:Unknown3": "int",
+                },
                 "5:NumberSequence": "NumberSequence",
+                "7:Icon": "PositionedImage",
             },
             "4:BackgroundImageIndex": "imgid",
         },
@@ -817,7 +831,7 @@ ALIGNMENT = {"TopLeft": 18, "Top": 16, "TopRight": 20, "CenterLeft": 66, "Center
 HALIGNMENT = {"Left": 0, "Center": 1, "Right": 2}
 DATATYPE = {"Battery": 1, "Steps": 2, "Calories": 3, "HeartRate": 4, "PAI": 5,
             "Distance": 6, "Unknown7": 7, "Weather": 8, "UVindex": 9,
-            "AirQuality": 10, "Humidity": 11}
+            "AirQuality": 10, "Humidity": 11, "Sunrise": 12}
 ALIGNMENT_INV = {v: k for k, v in ALIGNMENT.items()}
 HALIGNMENT_INV = {v: k for k, v in HALIGNMENT.items()}
 DATATYPE_INV = {v: k for k, v in DATATYPE.items()}

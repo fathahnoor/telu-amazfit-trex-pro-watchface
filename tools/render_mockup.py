@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Render mockup dari folder build (watchface.json + PNG) untuk verifikasi visual.
+"""Render mockup v5 dari folder build (watchface.json + PNG).
 
 Pakai:
-  python tools/render_mockup.py build/telu out/mockup_360.png [--small out/mockup_220.png]
-  Data contoh bisa dioverride: --time 0512 --kcal 29 --steps 1115 --hr 97
-    --batt 92 --wday 2 --day 12 --ampm AM
-  wday: 0=MON..6=SUN (konvensi T-Rex Pro teramati).
+  python tools/render_mockup.py build/telu out/mockup_360.png [--small out.png]
+Skenario: --time 1028 --steps 8426 --hr 72 --batt 82 --kcal 560 --temp 29
+  --cond 2 (indeks kondisi cuaca) --solar sunset --wday 4 --day 12
+  --mode idle  (always-on)
 """
 
 import json
@@ -15,8 +15,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-TELU_RED = (237, 30, 40, 255)
-HALIGN = {"Left": 0, "Center": 1, "Right": 2}
+RED = (255, 32, 41, 255)
+GRAY_LABEL = (154, 154, 156)
 
 
 def load(folder):
@@ -28,133 +28,196 @@ def load(folder):
     return params, imgs
 
 
-def draw_number(canvas, imgs, text_cfg, digits, rng, align, spacing):
-    """Gambar deretan digit. text_cfg = node Text (punya Image)."""
-    node = text_cfg["Image"]
-    x0, y0 = node["X"], node["Y"]
-    base, count = rng["ImageIndex"], rng["ImagesCount"]
-    if text_cfg.get("ZeroPadding") and len(digits) < 2:
-        digits = digits.rjust(2, "0")
-    cells = [imgs[base + int(ch)] for ch in digits]
-    widths = [c.width for c in cells]
-    suffix = node.get("SuffixImage")
-    simg = imgs[suffix["ImageRange"]["ImageIndex"]] if suffix else None
-    total = sum(widths) + spacing * (len(cells) - 1)
-    if simg is not None:
-        total += spacing + simg.width
-    if align == "Right":
-        x = x0 - total
-    elif align == "Center":
-        x = x0 - total // 2
-    else:
-        x = x0
-    for cell, w in zip(cells, widths):
-        canvas.alpha_composite(cell, (int(x), y0))
-        x += w + spacing
-    suffix = node.get("SuffixImage")
-    if suffix:
-        s = suffix["ImageRange"]
-        simg = imgs[s["ImageIndex"]]
-        canvas.alpha_composite(simg, (int(x), y0))
-        x += simg.width
-    return int(x)
-
-
-def draw_arc(canvas, angle, frac, color):
-    d = ImageDraw.Draw(canvas)
-    cx, cy = angle["X"], angle["Y"]
-    r = angle["Radius"]
-    start = angle["StartAngle"]
-    span = (angle["EndAngle"] - start) % 360
-    end = start + span * max(0.0, min(1.0, frac))
-    w = 5
-    if frac <= 0:
-        return
-    # PIL: 0 = jam 3, searah jarum jam
-    d.arc([cx - r, cy - r, cx + r, cy + r], start=(start + 270) % 360,
-          end=(end + 270) % 360, fill=color, width=w)
-
-
 def as_list(value):
     return value if isinstance(value, list) else [value]
 
 
-def draw_face(canvas, imgs, time_block, date_block, data_list, args):
-    """Gambar seluruh elemen dinamis; dipakai tampilan utama dan idle."""
-    hms = {e["Type"]: e for e in as_list(time_block["HoursMinutesSeconds"])}
+def imgs_range(rng):
+    base = rng["ImageIndex"]
+    return [base + i for i in range(rng["ImagesCount"])]
+
+
+def draw_number(canvas, imgs, text_cfg, digits, value=None):
+    digits = str(digits)
+    node = text_cfg["Image"]
+    x, y = node["X"], node["Y"]
+    rng = node["ImageRange"]["ImageRange"]
+    base = rng["ImageIndex"]
+    if value is not None and text_cfg.get("NoDataImageIndex") is not None:
+        canvas.alpha_composite(imgs[text_cfg["NoDataImageIndex"]], (x, y))
+        return
+    if text_cfg.get("ZeroPadding") and len(digits) < 2:
+        digits = digits.rjust(2, "0")
+    delim = node.get("DelimiterImageIndex")
+    if delim is not None and len(digits) > 3:
+        digits = digits[:-3] + "," + digits[-3:]
+    for ch in digits:
+        if ch == ",":
+            cell = imgs[delim]
+        elif ch == "-":
+            continue
+        else:
+            cell = imgs[base + int(ch)]
+        canvas.alpha_composite(cell, (int(x), int(y)))
+        x += cell.width + text_cfg.get("Spacing", 0)
+    suffix = node.get("SuffixImage")
+    if suffix:
+        s = imgs[suffix["ImageRange"]["ImageIndex"]]
+        canvas.alpha_composite(s, (int(x), int(y)))
+        x += s.width
+
+
+def draw_gauge(canvas, imgs, entry, frac, radius_offset=0):
+    if "CircleScale" not in entry or frac is None:
+        return
+    angle = entry["CircleScale"]["Angle"]
+    d = ImageDraw.Draw(canvas)
+    cx, cy, r = angle["X"], angle["Y"], angle["Radius"] + radius_offset
+    start = angle["StartAngle"]
+    span = (angle["EndAngle"] - start) % 360 or 360
+    end = start + span * max(0.0, min(1.0, frac))
+    w = entry["CircleScale"].get("Width", 7)
+    if frac <= 0:
+        return
+    d.arc([cx - r, cy - r, cx + r, cy + r], start=(start + 270) % 360,
+          end=(end + 270) % 360, fill=RED, width=w)
+
+
+def draw_time(canvas, imgs, block, args, date_shift=(0, 0)):
+    sx, sy = date_shift
+    hms = {e["Type"]: e for e in as_list(block["HoursMinutesSeconds"])}
     hh, mm = args["time"][:2], args["time"][2:]
     for typ, digits in ((0, hh), (1, mm)):
-        e = hms[typ]
+        txt = hms[typ]["Text"]
+        node = txt["Image"]
+        node = dict(node, X=node["X"] + sx, Y=node["Y"] + sy)
+        draw_number(canvas, imgs, dict(txt, Image=node), digits)
+    if "AM" in block:
+        ap = block["AM" if args.get("ampm", "AM") == "AM" else "PM"]
+        rng = ap["ImageRange"]["ImageRange"]
+        badge = imgs[rng["ImageIndex"]]
+        canvas.alpha_composite(badge, (ap["Coordinates"]["X"] + sx,
+                                       ap["Coordinates"]["Y"] + sy))
+
+
+def draw_date(canvas, imgs, block, args):
+    ymd = {e["Type"]: e for e in as_list(block["YearMonthDay"])}
+    e = ymd.get(2)
+    if e is not None:
+        txt = e["Text"]
+        draw_number(canvas, imgs, txt, args["day"])
+    e = ymd.get(1)
+    if e is not None:
         txt = e["Text"]
         rng = txt["Image"]["ImageRange"]["ImageRange"]
-        draw_number(canvas, imgs, txt, digits, rng, txt["Alignment"], txt["Spacing"])
-    ap = time_block["AM" if args["ampm"] == "AM" else "PM"]
-    rng = ap["ImageRange"]["ImageRange"]
-    badge = imgs[rng["ImageIndex"]]
-    canvas.alpha_composite(badge, (ap["Coordinates"]["X"], ap["Coordinates"]["Y"]))
+        month = int(args.get("month", 9))
+        img = imgs[rng["ImageIndex"] + month - 1]
+        canvas.alpha_composite(img, (txt["Image"]["X"], txt["Image"]["Y"]))
+    week = block.get("Week")
+    if week:
+        txt = week["Text"]
+        rng = txt["Image"]["ImageRange"]["ImageRange"]
+        wday = int(args.get("wday", 4))
+        img = imgs[rng["ImageIndex"] + wday]
+        canvas.alpha_composite(img, (txt["Image"]["X"], txt["Image"]["Y"]))
 
-    ymd = {e["Type"]: e for e in as_list(date_block["YearMonthDay"])}
-    e = ymd[2]
-    txt = e["Text"]
-    rng = txt["Image"]["ImageRange"]["ImageRange"]
-    draw_number(canvas, imgs, txt, args["day"], rng, txt["Alignment"], txt["Spacing"])
-    txt = date_block["Week"]["Text"]
-    rng = txt["Image"]["ImageRange"]["ImageRange"]
-    wimg = imgs[rng["ImageIndex"] + int(args["wday"])]
-    x0, y0 = txt["Image"]["X"], txt["Image"]["Y"]
-    align = txt.get("Alignment", "Left")
-    if align == "Right":
-        x0 -= wimg.width
-    elif align == "Center":
-        x0 -= wimg.width // 2
-    canvas.alpha_composite(wimg, (x0, y0))
 
+def draw_data(canvas, imgs, data_list, args):
     data = {e["Type"]: e for e in as_list(data_list)}
-    for key, digits in (("Calories", args["kcal"]), ("Steps", args["steps"]),
-                        ("HeartRate", args["hr"])):
-        e = data[key]["NumberSequence"]
-        txt = e["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        draw_number(canvas, imgs, txt, digits, rng, txt["Alignment"], txt["Spacing"])
-    e = data["Battery"]
-    draw_arc(canvas, e["CircleScale"]["Angle"], int(args["batt"]) / 100.0, TELU_RED)
-    if "NumberSequence" in e:
-        txt = e["NumberSequence"]["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        draw_number(canvas, imgs, txt, args["batt"], rng, txt["Alignment"], txt["Spacing"])
+    if "Steps" in data:
+        draw_gauge(canvas, imgs, data["Steps"], args["steps"] / 10000.0)
+        txt = data["Steps"]["NumberSequence"]["Text"]
+        draw_number(canvas, imgs, txt, args["steps"])
+    if "HeartRate" in data:
+        draw_gauge(canvas, imgs, data["HeartRate"], args["hr"] / 220.0)
+        txt = data["HeartRate"]["NumberSequence"]["Text"]
+        draw_number(canvas, imgs, txt, args["hr"])
+    if "Calories" in data:
+        draw_gauge(canvas, imgs, data["Calories"], args["kcal"] / 1000.0)
+        txt = data["Calories"]["NumberSequence"]["Text"]
+        draw_number(canvas, imgs, txt, args["kcal"])
+    if "Battery" in data:
+        draw_gauge(canvas, imgs, data["Battery"], args["batt"] / 100.0)
+        txt = data["Battery"]["NumberSequence"]["Text"]
+        draw_number(canvas, imgs, txt, args["batt"])
+
+    # Cuaca: ikon (Linear) + suhu (NumberSequence).
+    weather = [e for e in as_list(data_list) if e["Type"] == "Weather"]
+    for e in weather:
+        if "Linear" in e:
+            seg = e["Linear"]["Segments"]
+            rng = e["Linear"]["ImageRange"]
+            idx = rng["ImageIndex"] + int(args.get("cond", 2))
+            canvas.alpha_composite(imgs[idx], (seg["X"], seg["Y"]))
+        elif "NumberSequence" in e:
+            txt = e["NumberSequence"]["Text"]
+            draw_number(canvas, imgs, txt, args["temp"])
+
+    # Solar: event terdekat + pasangan ikon.
+    solar = [e for e in as_list(data_list) if e["Type"] == "Sunrise"]
+    show_sunset = args.get("solar", "sunset") == "sunset"
+    for e in solar:
+        if "Linear" in e:
+            seg = e["Linear"]["Segments"]
+            rng = e["Linear"]["ImageRange"]
+            idx = rng["ImageIndex"] + (1 if show_sunset else 0)
+            canvas.alpha_composite(imgs[idx], (seg["X"], seg["Y"]))
+        elif "NumberSequence" in e:
+            txt = e["NumberSequence"]["Text"]
+            node = txt["Image"]
+            solar_time = args["solartime"] if show_sunset else args["sunrisetime"]
+            x = node["X"]
+            y = node["Y"]
+            for i, ch in enumerate(solar_time):
+                if i == 2:
+                    canvas.alpha_composite(imgs[node["DecimalPointImageIndex"]],
+                                           (int(x), int(y)))
+                    x += imgs[node["DecimalPointImageIndex"]].width
+                cell = imgs[node["ImageRange"]["ImageRange"]["ImageIndex"] +
+                            int(ch)]
+                canvas.alpha_composite(cell, (int(x), int(y)))
+                x += cell.width
 
 
 def main(argv):
     folder = Path(argv[1])
     out = Path(argv[2])
-    args = {"time": "0532", "kcal": "29", "steps": "1115", "hr": "97",
-            "batt": "92", "wday": "5", "day": "12", "ampm": "AM"}
+    args = {"time": "1028", "steps": "8426", "hr": "72", "batt": "82",
+            "kcal": "560", "temp": "29", "cond": "2", "solar": "sunset",
+            "wday": "4", "day": "12", "month": "9", "ampm": "AM",
+            "solartime": "1802", "sunrisetime": "0547", "mode": "main"}
+    small = None
     i = 3
     while i < len(argv):
         if argv[i].startswith("--"):
             key = argv[i][2:]
             if key == "small":
+                small = Path(argv[i + 1])
                 i += 2
                 continue
             args[key] = argv[i + 1]
             i += 2
         else:
             i += 1
-    small = None
-    if "--small" in argv:
-        small = Path(argv[argv.index("--small") + 1])
 
     params, imgs = load(folder)
-
-    if args.get("mode") == "idle":
+    for key in ("steps", "hr", "batt", "kcal", "temp", "cond", "wday", "day",
+                "month"):
+        args[key] = int(args[key])
+    if args["mode"] == "idle":
         idle = params["IdleScreen"]
         canvas = imgs[idle["BackgroundImageIndex"]].copy()
-        draw_face(canvas, imgs, idle["Time"]["Digital"], idle["Date"],
-                  idle["Data"], args)
+        draw_time(canvas, imgs, idle["Time"]["Digital"], args)
+        draw_date(canvas, imgs, idle["Date"], args)
+        entry = idle["Data"]
+        if "NumberSequence" in entry:
+            draw_number(canvas, imgs, entry["NumberSequence"]["Text"],
+                        args["batt"])
     else:
-        canvas = imgs[0].copy()
-        draw_face(canvas, imgs, params["Time"]["Digital"],
-                  params["System"]["Date"], params["System"]["Data"], args)
+        canvas = imgs[params["Background"]["ImageIndex"]].copy()
+        draw_time(canvas, imgs, params["Time"]["Digital"], args)
+        draw_date(canvas, imgs, params["System"]["Date"], args)
+        draw_data(canvas, imgs, params["System"]["Data"], args)
 
     canvas.save(out)
     print("mockup:", out)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validator lingkaran: pastikan semua elemen dinamis di dalam r=175.
+"""Validator lingkaran v5: pastikan semua elemen dinamis di dalam r=174.
 
 Layar fisik bulat; konten di luar lingkaran terpotong bezel. Gagalkan build
 bila ada kotak elemen yang keluar. Dijalankan oleh tools/build_all.py.
@@ -13,14 +13,16 @@ from pathlib import Path
 from PIL import Image
 
 CX = CY = 180
-SAFE_R = 175
+SAFE_R = 174
 
-# jumlah digit maksimum per elemen (nama -> (lebar_digit_max, suffix?))
+# perkiraan jumlah digit maksimum per elemen
 MAXDIGITS = {
     ("Time", 0): 2, ("Time", 1): 2,
-    ("Calories",): 4, ("Steps",): 5, ("HeartRate",): 3,
-    ("Battery",): 3, ("Day",): 2,
+    "Steps": 5, "HeartRate": 3, "Calories": 4, "Battery": 3,
+    "Weather": 2, "Sunrise": 4, "Day": 2,
 }
+
+RING_SAFE_R = 176  # cincin dekoratif boleh menyentuh bezel (sesuai referensi)
 
 
 def box_dist(x, y, w, h):
@@ -33,16 +35,22 @@ def dims(folder, index):
         return im.size
 
 
-def number_box(folder, text_cfg, img_index, count, ndigits, suffix_index=None):
+def as_list(value):
+    return value if isinstance(value, list) else [value]
+
+
+def number_box(folder, text_cfg, ndigits, suffix_index=None, delim_index=None):
     node = text_cfg["Image"]
     x0, y0 = node["X"], node["Y"]
-    cells = [dims(folder, img_index + i)[0] for i in range(count)]
-    # lebar terburuk: ndigits digit terlebar + spacing
-    widest = [max(cells)] * ndigits
-    total = sum(widest) + text_cfg.get("Spacing", 0) * max(0, ndigits - 1)
+    rng = node["ImageRange"]["ImageRange"]
+    cells = [dims(folder, rng["ImageIndex"] + i) for i in range(rng["ImagesCount"])]
+    cell_w = max(c[0] for c in cells)
+    cell_h = max(c[1] for c in cells)
+    total = cell_w * ndigits
+    if ndigits >= 4 and delim_index is not None:
+        total += dims(folder, delim_index)[0]
     if suffix_index is not None:
-        total += text_cfg.get("Spacing", 0) + dims(folder, suffix_index)[0]
-    h = dims(folder, img_index)[1]
+        total += dims(folder, suffix_index)[0]
     align = text_cfg.get("Alignment", "Left")
     if align == "Right":
         x = x0 - total
@@ -50,7 +58,7 @@ def number_box(folder, text_cfg, img_index, count, ndigits, suffix_index=None):
         x = x0 - total // 2
     else:
         x = x0
-    return x, y0, total, h
+    return x, y0, total, cell_h
 
 
 def main():
@@ -61,20 +69,21 @@ def main():
     def check(name, x, y, w, h):
         dist = box_dist(x, y, w, h)
         flag = "OK " if dist <= SAFE_R else "FAIL"
-        print("%s %-22s box=(%d,%d %dx%d) maxdist=%.1f" % (flag, name, x, y, w, h, dist))
+        print("%s %-24s box=(%d,%d %dx%d) maxdist=%.1f"
+              % (flag, name, x, y, w, h, dist))
         if dist > SAFE_R:
             bad.append(name)
 
     def check_time(prefix, block):
-        hms = block["HoursMinutesSeconds"]
-        hms = hms if isinstance(hms, list) else [hms]
+        hms = as_list(block["HoursMinutesSeconds"])
         for e in hms:
             txt = e["Text"]
-            rng = txt["Image"]["ImageRange"]["ImageRange"]
             nd = MAXDIGITS[("Time", e["Type"])]
-            check("%s time type%d" % (prefix, e["Type"]),
-                  *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], nd))
+            check("%s time t%d" % (prefix, e["Type"]),
+                  *number_box(folder, txt, nd))
         for key in ("AM", "PM"):
+            if key not in block:
+                continue
             ap = block[key]
             rng = ap["ImageRange"]["ImageRange"]
             w, h = dims(folder, rng["ImageIndex"])
@@ -82,37 +91,71 @@ def main():
                   ap["Coordinates"]["Y"], w, h)
 
     def check_date(prefix, block):
-        ymd = block["YearMonthDay"]
-        ymd = ymd if isinstance(ymd, list) else [ymd]
-        for e in ymd:
-            txt = e["Text"]
+        ymd = {e["Type"]: e for e in as_list(block["YearMonthDay"])}
+        for typ, label, nd in ((2, "day", 2), (1, "month", 5)):
+            e = ymd.get(typ)
+            if e is None:
+                continue
+            rng = e["Text"]["Image"]["ImageRange"]["ImageRange"]
+            widest = max(dims(folder, rng["ImageIndex"] + i)[0]
+                         for i in range(rng["ImagesCount"]))
+            h = dims(folder, rng["ImageIndex"])[1]
+            check("%s %s" % (prefix, label), e["Text"]["Image"]["X"],
+                  e["Text"]["Image"]["Y"], widest if typ == 1 else 2 * widest, h)
+        week = block.get("Week")
+        if week:
+            txt = week["Text"]
             rng = txt["Image"]["ImageRange"]["ImageRange"]
-            check("%s day" % prefix,
-                  *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], 2))
-        e = block["Week"]
-        txt = e["Text"]
-        rng = txt["Image"]["ImageRange"]["ImageRange"]
-        base, cnt = rng["ImageIndex"], rng["ImagesCount"]
-        for i in range(cnt):
-            w, h = dims(folder, base + i)
-            align = txt.get("Alignment", "Left")
-            x0 = txt["Image"]["X"]
-            x = x0 if align == "Left" else (x0 - w // 2 if align == "Center" else x0 - w)
-            check("%s weekday%d" % (prefix, i), x, txt["Image"]["Y"], w, h)
+            widest = max(dims(folder, rng["ImageIndex"] + i)[0]
+                         for i in range(rng["ImagesCount"]))
+            h = dims(folder, rng["ImageIndex"])[1]
+            check("%s weekday" % prefix, txt["Image"]["X"], txt["Image"]["Y"],
+                  widest, h)
 
     def check_data(prefix, entries):
-        for e in entries:
-            if "NumberSequence" not in e:
-                continue
-            txt = e["NumberSequence"]["Text"]
-            rng = txt["Image"]["ImageRange"]["ImageRange"]
-            nd = MAXDIGITS[(e["Type"],)]
-            suf = None
-            if "SuffixImage" in txt["Image"]:
-                s = txt["Image"]["SuffixImage"]["ImageRange"]
-                suf = s["ImageIndex"]
-            check("%s %s" % (prefix, e["Type"]),
-                  *number_box(folder, txt, rng["ImageIndex"], rng["ImagesCount"], nd, suf))
+        for e in as_list(entries):
+            t = e.get("Type")
+            if "NumberSequence" in e and t in MAXDIGITS:
+                txt = e["NumberSequence"]["Text"]
+                nd = MAXDIGITS[t]
+                suf = None
+                if "SuffixImage" in txt["Image"]:
+                    suf = txt["Image"]["SuffixImage"]["ImageRange"]["ImageIndex"]
+                delim = txt["Image"].get("DelimiterImageIndex")
+                check("%s %s" % (prefix, t),
+                      *number_box(folder, txt, nd, suf, delim))
+            if "Linear" in e:
+                seg = e["Linear"]["Segments"]
+                rng = e["Linear"]["ImageRange"]
+                # Pisahkan klaster ikon (atas) dan label (bawah) supaya
+                # sudut transparan tidak dihitung.
+                icon_box = [10 ** 6, 10 ** 6, -1, -1]
+                label_box = [10 ** 6, 10 ** 6, -1, -1]
+                for i in range(rng["ImagesCount"]):
+                    with Image.open(Path(folder) / f"{rng['ImageIndex'] + i}.png") as im:
+                        im = im.convert("RGBA")
+                        for box, y0, y1 in ((icon_box, 0, 36), (label_box, 36, im.height)):
+                            crop = im.crop((0, y0, im.width, y1)).getbbox()
+                            if crop is None:
+                                continue
+                            box[0] = min(box[0], crop[0])
+                            box[1] = min(box[1], y0 + crop[1])
+                            box[2] = max(box[2], crop[2])
+                            box[3] = max(box[3], y0 + crop[3])
+                for tag, box in (("icon", icon_box), ("label", label_box)):
+                    if box[2] < 0:
+                        continue
+                    check("%s %s %s" % (prefix, t, tag), seg["X"] + box[0],
+                          seg["Y"] + box[1], box[2] - box[0], box[3] - box[1])
+            if "CircleScale" in e:
+                a = e["CircleScale"]["Angle"]
+                r = a["Radius"] + e["CircleScale"].get("Width", 7)
+                dist = math.hypot(a["X"] - CX, a["Y"] - CY) + r
+                flag = "OK " if dist <= RING_SAFE_R else "FAIL"
+                print("%s %-24s ring center-dist+r=%.1f (r=%.1f)"
+                      % (flag, "%s %s ring" % (prefix, t), dist, r))
+                if dist > RING_SAFE_R:
+                    bad.append("%s %s ring" % (prefix, t))
 
     check_time("main", params["Time"]["Digital"])
     check_date("main", params["System"]["Date"])
@@ -121,7 +164,7 @@ def main():
     idle = params["IdleScreen"]
     check_time("idle", idle["Time"]["Digital"])
     check_date("idle", idle["Date"])
-    check_data("idle", idle["Data"])
+    check_data("idle", [idle["Data"]])
 
     if bad:
         print("GAGAL: %d elemen di luar lingkaran: %s" % (len(bad), bad))

@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""Generator aset + watchface.json untuk TEL-U T-Rex Pro (360x360, UIHH_GT2).
+"""Generator aset + watchface.json v5 "TELKOM UNIVERSITY" (T-Rex Pro, 360x360).
 
-Arah desain "REDLINE": jam horizontal, kapsul menit merah, indeks instrumen,
-komplikasi ringkas, dan latar idle hitam.
+Revisi besar mengikuti v5/telkom_trex_pro_watchface_spec.md dan
+v5/v5_preview-reference.png:
 
-ROUND-SAFE: semua konten teks/ikon/badge wajib di dalam lingkaran aman
-r=175 (layar fisik bulat; sudut kotak 360x360 terpotong bezel).
+- Latar diekstrak dari referensi yang disetujui (frame luar, sudut kampus,
+  cincin gauge, garis pemisah) lalu ditambal bersih; elemen dinamis menjadi
+  aset firmware terpisah.
+- Logo resmi Telkom University (Wikimedia Commons) dengan wordmark putih.
+- Waktu utama: jam putih + titik dua & menit merah (dua set digit).
+- Tanggal "Friday, 12 Sep": 7 nama hari + 12 gambar bulan.
+- Empat gauge melingkar: STEPS, BPM, POWER, KCAL (busur CircleScale).
+- Modul solar dinamis "SUNRISE/SUNSET terdekat" (data Sunrise, tipe 12):
+  pasangan gambar ikon+label dengan pita tengah transparan untuk angka
+  waktu, sehingga hanya satu event tampil.
+- Cuaca: suhu + 29 banner kondisi (piktogram + label tertanam).
+- Always-on disederhanakan: jam, hari+tanggal, baterai.
 
-Output ke build/telu/: 0.png background, 1.png AM, 2.png PM,
-3-12 digit besar, 13-22 digit kecil, 23-32 digit medium, 33 nodata,
-34 persen, 35-41 weekday (MON..SUN), 42 slot kosong, 43 latar idle,
-preview.png (indeks 44), watchface.json.
+Output ke build/telu/: 0..N PNG + preview.png 220x220 + watchface.json.
 """
 
 import json
@@ -21,31 +28,105 @@ from PIL import Image, ImageDraw, ImageFont
 
 W = H = 360
 CX = CY = 180
-SAFE_R = 175
+SAFE_R = 174
 
-TELU_RED = (237, 30, 40)
-TELU_MAROON = (182, 37, 42)
-TELU_DARK = (122, 16, 21)
-TELU_DEEP = (58, 8, 11)
-GRAY_DARK = (85, 86, 91)
-GRAY_LIGHT = (149, 149, 151)
+# ---------------------------------------------------------------------------
+# Palet (spesifikasi v5)
+# ---------------------------------------------------------------------------
+RED = (255, 32, 41)           # Telkom red utama (#FF2029)
 WHITE = (255, 255, 255)
+WHITE_SOFT = (241, 241, 241)
+GRAY_LABEL = (154, 154, 156)
+GRAY_RING = (58, 58, 60)
+GRAY_RIM = (88, 88, 92)
+YELLOW = (255, 210, 26)
+HEART = (255, 34, 78)
 BLACK = (0, 0, 0)
-CHIP_BG = (16, 16, 20)
-CHIP_EDGE = (48, 48, 54)
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "telu"
 FONTS = ROOT / "assets" / "fonts"
+REFERENCE = ROOT / "v5" / "v5_preview-reference.png"
+LOGO = ROOT / "assets" / "telkom-university-logo.png"
 
-FONT_DISPLAY = str(FONTS / "Anton-Regular.ttf")
-FONT_BOLD = str(FONTS / "Rajdhani-Bold.ttf")
-FONT_SEMI = str(FONTS / "Rajdhani-SemiBold.ttf")
-FONT_MED = str(FONTS / "Rajdhani-Medium.ttf")
+F_INTER = str(FONTS / "Inter-Variable.ttf")
+F_MS = str(FONTS / "Montserrat-SemiBold.ttf")
+F_MB = str(FONTS / "Montserrat-Bold.ttf")
+F_MM = str(FONTS / "Montserrat-Medium.ttf")
+
+SS = 4  # supersampling teks/angka
+
+# ---------------------------------------------------------------------------
+# Geometri gauge (diukur dari referensi)
+# ---------------------------------------------------------------------------
+GAUGES = {
+    "steps": dict(cx=66, cy=156, r=44, icon_cy=138, value_cy=163, label_cy=179),
+    "bpm": dict(cx=283, cy=161, r=45, icon_cy=110, value_cy=160, label_cy=178),
+    "power": dict(cx=80, cy=236, r=35, icon_cy=220, value_cy=246, label_cy=268),
+    "kcal": dict(cx=288, cy=242, r=43, icon_cy=224, value_cy=246, label_cy=267),
+}
+
+# Waktu utama
+TIME_Y = 141
+TIME_CELL = (40, 56)
+HOUR_X = 93
+MINUTE_X = 187            # 93 + 2*40 + 14 (titik dua) = 187
+COLON_DOTS = [(176, 155, 185, 166), (176, 180, 185, 191)]
+
+# Tanggal
+DATE_Y = 113
+
+# Nilai metrik (sel + lebar maksimum untuk menghitung X rata tengah)
+METRIC_CELL = (10, 17)
+WEATHER_CELL = (11, 16)
+SOLAR_CELL = (9, 12)
+
+# Modul solar
+SOLAR_ICON_XY = (146, 212)
+SOLAR_ICON_SIZE = (68, 56)
+SOLAR_LABEL_Y = 43
+VALUE_SOLAR_CY = 244
+
+# Modul cuaca
+WEATHER_BANNER_XY = (232, 47)
+WEATHER_BANNER_SIZE = (96, 50)
+WEATHER_LABEL_Y = 37
+WEATHER_LABEL_CX = 58       # lokal
+WEATHER_ICON_LOCAL = (9, 8)
+VALUE_TEMP = (268, 64)
+
+# AM/PM
+AMPM_XY = (158, 199)
+
+# AOD
+AOD_TIME_Y = 152
+AOD_DATE_Y = 240
+AOD_BATTERY_Y = 288
+
+# Area dinamis yang dihapus dari referensi
+PATCH_COLOR = (7, 5, 4)
+PATCHES = [
+    (136, 3, 226, 105),     # logo
+    (236, 44, 316, 116),    # modul cuaca
+    (140, 210, 222, 272),   # modul solar
+    (94, 131, 300, 215),    # blok waktu penuh (titik dua digambar ulang)
+    (118, 109, 250, 133),   # tanggal
+    (152, 198, 212, 220),   # teks AM/PM
+]
 
 
-def font(path, size):
-    return ImageFont.truetype(path, size)
+# ---------------------------------------------------------------------------
+# Util gambar
+# ---------------------------------------------------------------------------
+
+def font(path, size, variation=None):
+    fnt = ImageFont.truetype(path, size)
+    if variation:
+        try:
+            fnt.set_variation_by_name(variation)
+        except Exception:
+            pass
+    return fnt
 
 
 def text_size(draw, text, fnt):
@@ -53,27 +134,58 @@ def text_size(draw, text, fnt):
     return box[2] - box[0], box[3] - box[1]
 
 
-def draw_tracked(draw, xy, text, fnt, fill, tracking=0):
-    x, y = xy
+def render_text(text, fnt, fill, tracking=0.0, pad=2):
+    """Render teks (str) dengan letter-spacing, hasil crop rapat."""
+    probe = Image.new("RGBA", (8, 8))
+    pd = ImageDraw.Draw(probe)
+    widths, heights = [], []
     for ch in text:
-        draw.text((x, y), ch, font=fnt, fill=fill + (255,))
-        w, _ = text_size(draw, ch, fnt)
-        x += w + tracking
-    return x - xy[0] - tracking
-
-
-def tracked_width(draw, text, fnt, tracking=0):
-    total = 0
+        box = pd.textbbox((0, 0), ch, font=fnt)
+        widths.append(box[2] - box[0])
+        heights.append(box[3] - box[1])
+    total_w = sum(widths) + tracking * SS * max(0, len(text) - 1) + pad * SS * 2
+    h = pd.textbbox((0, 0), text, font=fnt)[3] + pad * SS * 2
+    img = Image.new("RGBA", (int(total_w) + 8, int(h) + 8), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    x = pad * SS
+    y = pad * SS
     for ch in text:
-        w, _ = text_size(draw, ch, fnt)
-        total += w + tracking
-    return total - tracking
+        d.text((x, y), ch, font=fnt, fill=fill + (255,))
+        cw, _ = text_size(d, ch, fnt)
+        x += cw + tracking * SS
+    img = img.resize((max(1, img.width // SS), max(1, img.height // SS)),
+                     Image.LANCZOS)
+    box = img.getbbox()
+    return img.crop(box) if box else img
 
 
-def assert_circle(name, x, y, w, h, r=SAFE_R):
-    for px, py in ((x, y), (x + w, y), (x, y + h), (x + w, y + h)):
-        dist = math.hypot(px - CX, py - CY)
-        assert dist <= r, "%s keluar lingkaran: (%d,%d) dist=%.1f" % (name, px, py, dist)
+def make_digit(ch, cell_w, cell_h, font_path, font_size, fill=WHITE,
+               variation=None, stretch=1.0):
+    """Digit terpusat di sel tetap agar layout firmware deterministik.
+
+    Glyph dirender pada kanvas besar, dipangkas ke bbox tinta, lalu diskalakan
+    agar tinggi tinta = tinggi sel dan (opsional) diregangkan horizontal.
+    """
+    ss = 3
+    big = Image.new("RGBA", (font_size * ss * 2, font_size * ss * 2),
+                    (0, 0, 0, 0))
+    d = ImageDraw.Draw(big)
+    fnt = font(font_path, font_size * ss, variation)
+    box = d.textbbox((0, 0), ch, font=fnt)
+    d.text((-box[0], -box[1]), ch, font=fnt, fill=fill + (255,))
+    glyph = big.crop((0, 0, box[2] - box[0], box[3] - box[1]))
+    if stretch != 1.0:
+        glyph = glyph.resize((max(1, int(glyph.width * stretch)),
+                              glyph.height), Image.LANCZOS)
+    scale = (cell_h * ss) / glyph.height
+    glyph = glyph.resize((max(1, int(glyph.width * scale)), cell_h * ss),
+                         Image.LANCZOS)
+    if glyph.width > cell_w * ss:
+        glyph = glyph.resize((cell_w * ss, glyph.height), Image.LANCZOS)
+    img = Image.new("RGBA", (cell_w * ss, cell_h * ss), (0, 0, 0, 0))
+    img.alpha_composite(glyph, ((img.width - glyph.width) // 2,
+                                (img.height - glyph.height) // 2))
+    return img.resize((cell_w, cell_h), Image.LANCZOS)
 
 
 def watch_angle_xy(cx, cy, r, deg):
@@ -81,302 +193,670 @@ def watch_angle_xy(cx, cy, r, deg):
     return cx + r * math.sin(rad), cy - r * math.cos(rad)
 
 
-def pil_arc_angles(start_deg, end_deg):
-    return (start_deg + 270) % 360, (end_deg + 270) % 360
+def arc_pts(cx, cy, r, a0, a1, step=2.0):
+    pts = []
+    a = a0
+    while a <= a1:
+        pts.append(watch_angle_xy(cx, cy, r, a))
+        a += step
+    return pts
 
 
-def shear(img, factor=0.16):
-    """Miringkan (italic) gambar: geser x sebanding y."""
-    w, h = img.size
-    shift = int(abs(factor) * h) + 4
-    out = Image.new("RGBA", (w + shift * 2, h), (0, 0, 0, 0))
-    out.alpha_composite(img, (shift, 0))
-    return out.transform(out.size, Image.AFFINE, (1, factor, -factor * h, 0, 1, 0),
-                         resample=Image.BICUBIC)
+def svg_icon(path, width, fill=None):
+    """Raster akar SVG (MDI) lalu pewarnaan ulang opsional."""
+    from svglib.svglib import svg2rlg
+    from reportlab.graphics import renderPM
+    cache = ROOT / "build" / (Path(path).stem + ".png")
+    if not cache.exists():
+        drawing = svg2rlg(str(path))
+        renderPM.drawToFile(drawing, str(cache), fmt="PNG", dpi=600)
+    img = Image.open(cache).convert("RGBA")
+    px = img.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            r, g, b, al = px[x, y]
+            if fill and al > 30:
+                # Semua piksel ber-tinta jadi warna target; simpan alpha.
+                px[x, y] = fill + (al,)
+            elif al > 30 and (r + g + b) < 500:
+                px[x, y] = (255, 255, 255, al)
+            else:
+                px[x, y] = (0, 0, 0, 0)
+    box = img.getbbox()
+    if box:
+        img = img.crop(box)
+    ratio = width / img.width
+    return img.resize((width, max(1, int(img.height * ratio))), Image.LANCZOS)
 
 
-def vgradient(size, top, bottom):
-    w, h = size
-    base = Image.new("RGB", (1, h))
-    px = base.load()
-    for y in range(h):
-        t = y / max(1, h - 1)
-        px[0, y] = tuple(int(a + (b - a) * t) for a, b in zip(top, bottom))
-    return base.resize(size)
+def icon_battery(width=40, height=22, color=WHITE):
+    img = Image.new("RGBA", (width + 10, height + 12), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([5, 10, 5 + width, 10 + height], radius=5,
+                        outline=color + (255,), width=3)
+    d.rounded_rectangle([5 + width - 14, 4, 5 + width - 4, 12], radius=2,
+                        fill=color + (255,))
+    return img
 
 
-def make_background():
-    bg = Image.new("RGBA", (W, H), BLACK + (255,))
+def icon_solar(kind="sunset", w=44, h=22):
+    """Ikon horizon matahari bergaya referensi."""
+    img = Image.new("RGBA", (w, h + 10), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    horizon = h
+    rr = 8
+    dome = Image.new("RGBA", (w, h + 10), (0, 0, 0, 0))
+    ImageDraw.Draw(dome).ellipse([w // 2 - rr, horizon - rr,
+                                  w // 2 + rr, horizon + rr],
+                                 fill=RED + (255,))
+    img.alpha_composite(dome.crop((0, 0, w, horizon)), (0, 0))
+    d.line([3, horizon, w - 3, horizon], fill=RED + (255,), width=3)
+    d.line([w // 2 - 9, horizon + 6, w // 2 + 9, horizon + 6],
+           fill=RED + (255,), width=3)
+    for deg in (-55, -28, 0, 28, 55):
+        x1, y1 = watch_angle_xy(w // 2, horizon + 1, rr + 3, deg)
+        x2, y2 = watch_angle_xy(w // 2, horizon + 1, rr + 8, deg)
+        d.line([x1, y1, x2, y2], fill=RED + (255,), width=2)
+    return img
+
+
+# --- piktogram cuaca -------------------------------------------------------
+
+def pg_sun(d, x, y, s):
+    d.ellipse([x + s * 0.30, y + s * 0.30, x + s * 0.70, y + s * 0.70],
+              fill=YELLOW + (255,))
+    for deg in range(0, 360, 45):
+        p1 = watch_angle_xy(x + s / 2, y + s / 2, s * 0.37, deg)
+        p2 = watch_angle_xy(x + s / 2, y + s / 2, s * 0.48, deg)
+        d.line([p1, p2], fill=YELLOW + (255,), width=max(1, s // 14))
+
+
+def pg_moon(d, x, y, s):
+    d.ellipse([x + s * 0.28, y + s * 0.24, x + s * 0.76, y + s * 0.72],
+              fill=(250, 244, 210, 255))
+    d.ellipse([x + s * 0.16, y + s * 0.12, x + s * 0.60, y + s * 0.56],
+              fill=(0, 0, 0, 255))
+
+
+def pg_cloud(d, x, y, s, color=(255, 255, 255)):
+    c = color + (255,)
+    d.ellipse([x + s * 0.10, y + s * 0.42, x + s * 0.46, y + s * 0.80], fill=c)
+    d.ellipse([x + s * 0.30, y + s * 0.26, x + s * 0.68, y + s * 0.76], fill=c)
+    d.ellipse([x + s * 0.50, y + s * 0.44, x + s * 0.90, y + s * 0.80], fill=c)
+    d.rectangle([x + s * 0.18, y + s * 0.62, x + s * 0.82, y + s * 0.80], fill=c)
+
+
+def pg_rain(d, x, y, s, n=3, color=(255, 255, 255)):
+    for i in range(n):
+        px = x + s * (0.30 + i * 0.18)
+        d.line([px + 2, y + s * 0.74, px - 2, y + s * 0.96],
+               fill=color + (255,), width=max(1, s // 12))
+
+
+def pg_snow(d, x, y, s, n=3, color=(255, 255, 255)):
+    for i in range(n):
+        px = x + s * (0.30 + i * 0.18)
+        d.ellipse([px - 2, y + s * 0.80, px + 2, y + s * 0.94],
+                  fill=color + (255,))
+
+
+def pg_bolt(d, x, y, s, color=YELLOW):
+    d.polygon([(x + s * 0.54, y + s * 0.58), (x + s * 0.42, y + s * 0.84),
+               (x + s * 0.52, y + s * 0.84), (x + s * 0.44, y + s * 1.02),
+               (x + s * 0.68, y + s * 0.74), (x + s * 0.56, y + s * 0.74),
+               (x + s * 0.64, y + s * 0.58)], fill=color + (255,))
+
+
+def pg_fog(d, x, y, s):
+    for i in range(3):
+        yy = y + s * (0.44 + i * 0.16)
+        d.line([x + s * 0.14, yy, x + s * 0.88 - (i % 2) * s * 0.18, yy],
+               fill=(255, 255, 255, 255), width=max(2, s // 11))
+
+
+def pg_wind(d, x, y, s):
+    for i in range(3):
+        yy = y + s * (0.40 + i * 0.18)
+        pts = arc_pts(x + s * 0.28, yy, s * 0.24, -80, 80, 12)
+        d.line(pts, fill=(255, 255, 255, 255), width=max(1, s // 12),
+               joint="curve")
+
+
+def pg_sand(d, x, y, s):
+    d.polygon([(x + s * 0.5, y + s * 0.30), (x + s * 0.78, y + s * 0.86),
+               (x + s * 0.22, y + s * 0.86)], outline=(255, 255, 255, 255),
+              width=max(2, s // 12))
+
+
+CONDITIONS = [
+    ("SUNNY", ["sun"]),
+    ("PARTLY", ["sun", "cloud"]),
+    ("CLOUDY", ["sun", "cloud"]),
+    ("OVERCAST", ["cloud"]),
+    ("SHOWER", ["cloud", "rain1"]),
+    ("RAIN", ["cloud", "rain2"]),
+    ("DOWNPOUR", ["cloud", "rain3"]),
+    ("STORM", ["cloud", "bolt"]),
+    ("SLEET", ["cloud", "sleet"]),
+    ("FLURRY", ["cloud", "snow1"]),
+    ("SNOW", ["cloud", "snow2"]),
+    ("BLIZZARD", ["cloud", "snow3"]),
+    ("FOG", ["fog"]),
+    ("HAZE", ["fog2"]),
+    ("SANDSTORM", ["sand"]),
+    ("WINDY", ["wind"]),
+    ("CLEAR", ["moon"]),
+    ("MOONCLOUD", ["moon", "cloud"]),
+    ("NIGHT", ["moon", "cloud2"]),
+    ("N SHOWER", ["moon", "cloud", "rain1"]),
+    ("N RAIN", ["moon", "cloud", "rain2"]),
+    ("N STORM", ["moon", "cloud", "bolt"]),
+    ("N SNOW", ["moon", "cloud", "snow2"]),
+    ("N FOG", ["moon", "fog"]),
+    ("CLOUDY-2", ["cloud"]),
+    ("RAIN-2", ["cloud", "rain2"]),
+    ("SUNNY-2", ["sun"]),
+    ("CLOUDY-3", ["cloud"]),
+    ("WEATHER", ["cloud"]),
+]
+
+
+def render_weather_icon(tokens, size=30):
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for t in tokens:
+        if t == "sun":
+            pg_sun(d, 0, 0, size)
+        elif t == "moon":
+            pg_moon(d, 0, 0, size)
+        elif t in ("cloud", "cloud2"):
+            pg_cloud(d, 0, size * 0.16, size * 0.92)
+        elif t == "rain1":
+            pg_rain(d, 0, size * 0.60, size * 0.72, n=1)
+        elif t == "rain2":
+            pg_rain(d, 0, size * 0.60, size * 0.72, n=2)
+        elif t == "rain3":
+            pg_rain(d, 0, size * 0.60, size * 0.72, n=3)
+        elif t == "bolt":
+            pg_bolt(d, 0, size * 0.52, size * 0.76)
+        elif t == "snow1":
+            pg_snow(d, 0, size * 0.60, size * 0.72, n=1)
+        elif t == "snow2":
+            pg_snow(d, 0, size * 0.60, size * 0.72, n=2)
+        elif t == "snow3":
+            pg_snow(d, 0, size * 0.60, size * 0.72, n=3)
+        elif t == "sleet":
+            pg_rain(d, 0, size * 0.60, size * 0.72, n=2)
+            pg_snow(d, 0, size * 0.66, size * 0.72, n=1)
+        elif t in ("fog", "fog2"):
+            pg_fog(d, 0, size * 0.08, size)
+        elif t == "wind":
+            pg_wind(d, 0, size * 0.08, size)
+        elif t == "sand":
+            pg_sand(d, 0, size * 0.02, size)
+    return img
+
+
+def make_weather_banners():
+    w, h = WEATHER_BANNER_SIZE
+    banners = []
+    fnt = font(F_MS, 7 * SS)
+    for label, tokens in CONDITIONS:
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        img.alpha_composite(render_weather_icon(tokens, size=30),
+                            WEATHER_ICON_LOCAL)
+        txt = render_text(label, fnt, GRAY_LABEL, tracking=1.2)
+        img.alpha_composite(txt, (WEATHER_LABEL_CX - txt.width // 2,
+                                  WEATHER_LABEL_Y))
+        banners.append(img)
+    return banners
+
+
+def make_solar_banners():
+    w, h = SOLAR_ICON_SIZE
+    out = []
+    fnt = font(F_MS, 8 * SS)
+    for kind, label in (("sunrise", "SUNRISE"), ("sunset", "SUNSET")):
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        ic = icon_solar(kind, w=44, h=20)
+        img.alpha_composite(ic, ((w - ic.width) // 2, 3))
+        txt = render_text(label, fnt, GRAY_LABEL, tracking=1.2)
+        img.alpha_composite(txt, ((w - txt.width) // 2, SOLAR_LABEL_Y))
+        out.append(img)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Set teks
+# ---------------------------------------------------------------------------
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+DAYS_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+             "Saturday", "Sunday"]
+DAYS_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+
+
+def make_month_images():
+    fnt = font(F_MB, 15 * SS)
+    return [render_text(m, fnt, WHITE_SOFT, tracking=0.4) for m in MONTHS]
+
+
+def make_weekday_images():
+    fnt = font(F_MB, 15 * SS)
+    rendered = [render_text(d + ",", fnt, WHITE, tracking=0.4)
+                for d in DAYS_FULL]
+    cell_w = max(r.width for r in rendered) + 4
+    out = []
+    for r in rendered:
+        img = Image.new("RGBA", (cell_w, r.height), (0, 0, 0, 0))
+        img.alpha_composite(r, (cell_w - r.width, 0))
+        out.append(img)
+    return out
+
+
+def make_weekday_short_images():
+    fnt = font(F_MS, 12 * SS)
+    return [render_text(d, fnt, WHITE, tracking=1.4) for d in DAYS_SHORT]
+
+
+def make_cell_image(text, font_path, size, fill, cell_h=24, baseline=21,
+                    variation=None, tracking=0.0):
+    """Teks kecil dengan tinggi sel seragam (untuk suffix/delimiter)."""
+    glyph = render_text(text, font(font_path, size * SS, variation), fill,
+                        tracking=tracking)
+    img = Image.new("RGBA", (max(1, glyph.width), cell_h), (0, 0, 0, 0))
+    top = max(0, baseline - glyph.height)
+    img.alpha_composite(glyph, (0, top))
+    return img
+
+
+# ---------------------------------------------------------------------------
+# Latar: ekstraksi + tambalan + elemen statis
+# ---------------------------------------------------------------------------
+
+def build_background():
+    bg = Image.open(REFERENCE).convert("RGB").resize((W, H), Image.LANCZOS)
     d = ImageDraw.Draw(bg)
-    # Instrument bezel: quiet minor ticks and four red cardinal markers.
-    for deg in range(0, 360, 6):
-        major = deg % 30 == 0
-        p1 = watch_angle_xy(180, 180, 169 if major else 173, deg)
-        p2 = watch_angle_xy(180, 180, 177, deg)
-        d.line([p1, p2], fill=(TELU_RED if deg % 90 == 0 else (68, 70, 76)) + (255,), width=3 if major else 1)
-    d.arc([17, 17, 343, 343], 205, 335, fill=TELU_DEEP + (255,), width=2)
-    # Compact wordmark, separated from the time and date.
-    d.rounded_rectangle([100, 40, 124, 64], radius=6, fill=TELU_RED + (255,))
-    d.text((107, 42), "T", font=font(FONT_BOLD, 20), fill=WHITE + (255,))
-    d.text((134, 38), "TELKOM", font=font(FONT_BOLD, 20), fill=WHITE + (255,))
-    draw_tracked(d, (135, 59), "UNIVERSITY", font(FONT_SEMI, 10), GRAY_LIGHT, 2)
-    # A single red minute capsule gives the dial its identity.
-    d.rounded_rectangle([187, 112, 303, 216], radius=18, fill=TELU_RED + (255,))
-    d.line([69, 222, 291, 222], fill=(42, 43, 49, 255), width=1)
-    for x in (130, 236):
-        d.line([x, 239, x, 284], fill=(42, 43, 49, 255), width=1)
-    for x, label, icon in ((61, "KCAL", icon_flame), (154, "STEPS", icon_steps), (251, "BPM", icon_heart)):
-        bg.alpha_composite(icon(12, TELU_RED), (x, 235))
-        d.text((x + 16, 232), label, font=font(FONT_SEMI, 14), fill=GRAY_LIGHT + (255,))
-    d.rounded_rectangle([126, 303, 139, 311], radius=2, outline=GRAY_LIGHT + (255,), width=1)
-    d.rectangle([140, 305, 141, 309], fill=GRAY_LIGHT + (255,))
-    d.arc([8, 8, 352, 352], 65, 115, fill=TELU_DEEP + (255,), width=5)
+    for (x0, y0, x1, y1) in PATCHES:
+        d.rectangle([x0, y0, x1, y1], fill=PATCH_COLOR)
+
+    # Bersihkan busur merah pada cincin; isi ulang pita cincin / hitam.
+    px = bg.load()
+    for g in GAUGES.values():
+        cx, cy, r = g["cx"], g["cy"], g["r"]
+        for y in range(max(0, int(cy - 62)), min(H, int(cy + 62))):
+            for x in range(max(0, int(cx - 62)), min(W, int(cx + 62))):
+                pr, pg, pb = px[x, y]
+                if pr > pg + 18 and pr > pb + 18 and pr > 60:
+                    dist = math.hypot(x - cx, y - cy)
+                    if abs(dist - r) <= 6.5:
+                        px[x, y] = GRAY_RING
+                    elif dist < 62:
+                        px[x, y] = BLACK
+        # Interior gauge: hitam bersih untuk ikon/nilai baru.
+        d.ellipse([cx - (r - 3.5), cy - (r - 3.5),
+                   cx + (r - 3.5), cy + (r - 3.5)], fill=BLACK)
+
+    # Rim tipis.
+    d.ellipse([CX - 171, CY - 171, CX + 171, CY + 171],
+              outline=(70, 70, 74, 255), width=2)
+    # Cincin dasar gauge.
+    for g in GAUGES.values():
+        d.ellipse([g["cx"] - g["r"], g["cy"] - g["r"],
+                   g["cx"] + g["r"], g["cy"] + g["r"]],
+                  outline=GRAY_RING + (255,), width=7)
+    # Titik dua waktu (merah).
+    for box in COLON_DOTS:
+        d.rounded_rectangle(box, radius=3, fill=RED + (255,))
+    # Garis pemisah AM/PM.
+    d.line([110, 210, 168, 210], fill=(120, 120, 124, 255), width=2)
+    d.line([192, 210, 250, 210], fill=(120, 120, 124, 255), width=2)
+    # Aksen merah modul cuaca.
+    d.rounded_rectangle([296, 98, 332, 101], radius=2, fill=RED + (255,))
+
+    bg = bg.convert("RGBA")
+    # Ikon + label statis tiap gauge.
+    shoe = svg_icon(ROOT / "assets" / "shoe-sneaker.svg", 32)
+    heart = svg_icon(ROOT / "assets" / "heart.svg", 30, fill=HEART)
+    flame = svg_icon(ROOT / "assets" / "fire.svg", 30, fill=RED)
+    battery = icon_battery(38, 20)
+    g = GAUGES
+    bg.alpha_composite(shoe, (g["steps"]["cx"] - shoe.width // 2,
+                              g["steps"]["icon_cy"] - shoe.height // 2))
+    bg.alpha_composite(heart, (g["bpm"]["cx"] - heart.width // 2,
+                               g["bpm"]["icon_cy"] - heart.height // 2))
+    bg.alpha_composite(battery, (g["power"]["cx"] - battery.width // 2,
+                                 g["power"]["icon_cy"] - battery.height // 2))
+    bg.alpha_composite(flame, (g["kcal"]["cx"] - flame.width // 2,
+                               g["kcal"]["icon_cy"] - flame.height // 2))
+
+    label_fnt = font(F_MM, 7 * SS)
+    for name, text in (("steps", "STEPS"), ("bpm", "BPM"),
+                       ("power", "POWER"), ("kcal", "KCAL")):
+        g = GAUGES[name]
+        img = render_text(text, label_fnt, GRAY_LABEL, tracking=1.8)
+        bg.alpha_composite(img, (g["cx"] - img.width // 2,
+                                 g["label_cy"] - img.height // 2))
     return bg
 
 
-def icon_flame(size=16, color=WHITE):
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    s = size
-    d.polygon([
-        (0.50 * s, 0.02 * s), (0.72 * s, 0.30 * s), (0.62 * s, 0.34 * s),
-        (0.80 * s, 0.62 * s), (0.50 * s, 0.98 * s), (0.20 * s, 0.62 * s),
-        (0.38 * s, 0.34 * s), (0.30 * s, 0.28 * s),
-    ], fill=color + (255,))
-    d.ellipse([0.38 * s, 0.58 * s, 0.62 * s, 0.86 * s], fill=(0, 0, 0, 255))
-    return img
+def logo_image():
+    """Logo resmi: wordmark diputihkan, mark buku+U tetap."""
+    logo = Image.open(LOGO).convert("RGBA")
+    px = logo.load()
+    split = int(logo.height * 0.63)
+    for y in range(split, logo.height):
+        for x in range(logo.width):
+            r, g, b, al = px[x, y]
+            if al > 0 and max(r, g, b) < 150:
+                v = 245 if y < int(logo.height * 0.86) else 225
+                px[x, y] = (v, v, v, al)
+    target_w = 78
+    ratio = target_w / logo.width
+    return logo.resize((target_w, int(logo.height * ratio)), Image.LANCZOS)
 
 
-def icon_steps(size=16, color=WHITE):
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    s = size
-    d.ellipse([0.12 * s, 0.30 * s, 0.42 * s, 0.98 * s], fill=color + (255,))
-    d.ellipse([0.58 * s, 0.02 * s, 0.88 * s, 0.70 * s], fill=color + (255,))
-    for cx, cy, r in [(0.27, 0.16, 0.09), (0.73, 0.84, 0.09)]:
-        d.ellipse([(cx - r) * s, (cy - r) * s, (cx + r) * s, (cy + r) * s],
-                  fill=color + (255,))
-    return img
+def build_aod_background():
+    aod = Image.new("RGBA", (W, H), BLACK + (255,))
+    u_only = Image.open(LOGO).convert("RGBA")
+    u_only = u_only.crop((0, 520, u_only.width, 1460))
+    box = u_only.getbbox()
+    u_only = u_only.crop(box)
+    ratio = 30 / u_only.width
+    u_only = u_only.resize((30, max(1, int(u_only.height * ratio))),
+                           Image.LANCZOS)
+    px = u_only.load()
+    for y in range(u_only.height):
+        for x in range(u_only.width):
+            r, g, b, al = px[x, y]
+            if al > 0:
+                v = int(0.42 * (r + g + b) / 3) + 30
+                px[x, y] = (v, v, v, al)
+    aod.alpha_composite(u_only, (CX - 15, 58))
+    d = ImageDraw.Draw(aod)
+    for box in COLON_DOTS:
+        d.rounded_rectangle(box, radius=3, fill=RED + (255,))
+    return aod
 
 
-def icon_heart(size=16, color=WHITE):
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    s = size
-    d.ellipse([0.06 * s, 0.14 * s, 0.52 * s, 0.60 * s], fill=color + (255,))
-    d.ellipse([0.48 * s, 0.14 * s, 0.94 * s, 0.60 * s], fill=color + (255,))
-    d.polygon([(0.08 * s, 0.44 * s), (0.92 * s, 0.44 * s),
-               (0.50 * s, 0.96 * s)], fill=color + (255,))
-    return img
+# ---------------------------------------------------------------------------
+# Parameter
+# ---------------------------------------------------------------------------
+
+def gauge_circle_scale(g, color="0xFFFF2029", width=7):
+    return {
+        "Angle": {"X": g["cx"], "Y": g["cy"], "StartAngle": 0.0,
+                  "EndAngle": 360.0, "Radius": float(g["r"])},
+        "Color": color, "Width": width, "Flatness": 180,
+    }
 
 
-def make_badge(text):
-    img = Image.new("RGBA", (30, 19), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, 0, 29, 18], radius=4, fill=(38, 39, 45, 255))
-    d.text((15, 9), text, font=font(FONT_BOLD, 14), anchor="mm", fill=WHITE + (255,))
-    return img
-
-
-def make_digit(ch, cell_w, cell_h, font_path, font_size, fill=WHITE,
-               shadow=None, italic=0.0):
-    img = Image.new("RGBA", (cell_w * 2, cell_h * 2), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    fnt = font(font_path, font_size * 2)
-    w, h = text_size(d, ch, fnt)
-    box = d.textbbox((0, 0), ch, font=fnt)
-    x = (cell_w * 2 - w) // 2 - box[0]
-    y = (cell_h * 2 - h) // 2 - box[1]
-    if shadow:
-        d.text((x + 6, y + 6), ch, font=fnt, fill=shadow + (255,))
-    d.text((x, y), ch, font=fnt, fill=fill + (255,))
-    img = img.resize((cell_w, cell_h), Image.LANCZOS)
-    if italic:
-        img = shear(img, italic)
-        # pangkas tengah agar ukuran sel tetap
-        x0 = (img.width - cell_w) // 2
-        img = img.crop((x0, 0, x0 + cell_w, cell_h))
-    return img
-
-
-def make_text_image(text, font_path, font_size, fill, tracking=0, pad=2,
-                    shadow=None, italic=0.0):
-    scale = 2
-    tmp = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
-    d = ImageDraw.Draw(tmp)
-    fnt = font(font_path, font_size * scale)
-    tw = tracked_width(d, text, fnt, tracking * scale)
-    _, th = text_size(d, text, fnt)
-    img = Image.new("RGBA", (tw + pad * 2 * scale, th + font_size * scale + pad * 2 * scale), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    if shadow:
-        draw_tracked(d, (pad * scale + 4, pad * scale + 4), text, fnt, shadow,
-                     tracking * scale)
-    draw_tracked(d, (pad * scale, pad * scale), text, fnt, fill, tracking * scale)
-    img = img.resize((img.width // scale, img.height // scale), Image.LANCZOS)
-    if italic:
-        img = shear(img, italic)
-    box = img.getbbox()
-    return img.crop(box) if box else img
-
-
-I_BG = 0
-I_AM = 1
-I_PM = 2
-I_BIG = 3        # 3..12 digit besar Anton
-I_SMALL = 13     # 13..22 digit Rajdhani Bold (nilai)
-I_MED = 23       # 23..32 digit Rajdhani (baterai %, tanggal)
-I_NODATA = 33
-I_PCT = 34
-I_WEEK = 35      # 35..41 MON..SUN
-
-LANG = 2
-SHADOW = (110, 18, 22)
-
-
-def img_range(index, count):
-    return {"Language": LANG, "ImageRange": {"ImageIndex": index, "ImagesCount": count}}
-
-
-def number_text_image(x, y, index, count, align="Left", spacing=0, zeropad=0,
-                      suffix=None, nodata=None, unknown6=0):
-    img = {"X": x, "Y": y, "ImageRange": img_range(index, count)}
+def number_text(x, y, index, count, align="Left", spacing=0, zeropad=0,
+                nodata=None, suffix=None, decimal=None, delimiter=None,
+                unknown6=0):
+    node = {"X": x, "Y": y,
+            "ImageRange": {"Language": 2,
+                           "ImageRange": {"ImageIndex": index,
+                                          "ImagesCount": count}}}
     if nodata is not None:
-        img["NoDataImageIndex"] = nodata
+        node["NoDataImageIndex"] = nodata
     if suffix is not None:
-        img["SuffixImage"] = suffix
-    return {"Image": img, "Alignment": align, "Spacing": spacing,
+        node["SuffixImage"] = {"Language": 2,
+                               "ImageRange": {"ImageIndex": suffix,
+                                              "ImagesCount": 1}}
+    if decimal is not None:
+        node["DecimalPointImageIndex"] = decimal
+    if delimiter is not None:
+        node["DelimiterImageIndex"] = delimiter
+    return {"Image": node, "Alignment": align, "Spacing": spacing,
             "ZeroPadding": zeropad, "Unknown6": unknown6}
-
-
-# Koordinat kiri utk elemen yang dulu rata kanan. Firmware T-Rex Pro tidak
-# menghormati Alignment "Right" (teks mulai di X lalu memanjang ke kanan,
-# sehingga jam masuk kapsul dan menit keluar layar). Semua elemen digambar
-# dengan Alignment "Left" + X hasil hitung lebar maksimum.
-HOURS_X = 62       # 170 - 2 digit x 54
-MINUTES_X = 191    # 299 - 2 digit x 54
-BATTERY_TEXT_X = 159  # 220 - (3 digit + suffix)
-
-
-def time_digital():
-    """Blok waktu horizontal; dipakai tampilan utama maupun idle."""
-    return {
-        "HoursMinutesSeconds": [
-            {"Type": 0, "Independent": True,
-             "Text": number_text_image(HOURS_X, 114, I_BIG, 10, align="Left",
-                                      spacing=0, zeropad=1)},
-            {"Type": 1, "Independent": True,
-             "Text": number_text_image(MINUTES_X, 114, I_BIG, 10, align="Left",
-                                      spacing=0, zeropad=1)},
-        ],
-        "AM": {"Coordinates": {"X": 237, "Y": 83},
-               "ImageRange": img_range(I_AM, 1)},
-        "PM": {"Coordinates": {"X": 237, "Y": 83},
-               "ImageRange": img_range(I_PM, 1)},
-    }
-
-
-def date_system():
-    return {
-        "YearMonthDay": [
-            {"Type": 2, "Independent": True,
-             "Text": number_text_image(192, 83, I_MED, 10, align="Left",
-                                      spacing=2, zeropad=1)},
-        ],
-        "Week": {
-            "Independent": True,
-            "Text": number_text_image(129, 86, I_WEEK, 7, align="Left",
-                                      spacing=0, zeropad=0, unknown6=1),
-        },
-    }
-
-
-def data_system():
-    return [
-        {"Type": "Battery",
-         "CircleScale": {
-             "Angle": {"X": 180, "Y": 180, "StartAngle": 155.0,
-                       "EndAngle": 205.0, "Radius": 172.0},
-             "Color": "0xFFED1E28", "Width": 5, "Flatness": 180,
-         },
-         "NumberSequence": {
-             "Independent": True,
-             "Text": number_text_image(BATTERY_TEXT_X, 297, I_MED, 10,
-                                      align="Left", spacing=2, zeropad=0,
-                                      suffix=img_range(I_PCT, 1)),
-         }},
-        {"Type": "Steps",
-         "NumberSequence": {
-             "Independent": True,
-             "Text": number_text_image(146, 253, I_SMALL, 10, align="Left",
-                                      spacing=1, zeropad=0,
-                                      nodata=I_NODATA),
-         }},
-        {"Type": "Calories",
-         "NumberSequence": {
-             "Independent": True,
-             "Text": number_text_image(59, 253, I_SMALL, 10, align="Left",
-                                      spacing=1, zeropad=0,
-                                      nodata=I_NODATA),
-         }},
-        {"Type": "HeartRate",
-         "NumberSequence": {
-             "Independent": True,
-             "Text": number_text_image(250, 253, I_SMALL, 10, align="Left",
-                                      spacing=1, zeropad=0,
-                                      nodata=I_NODATA),
-         }},
-    ]
-
-
-def build_params(preview_index):
-    """Tampilan utama dan selalu-nyala (idle) memakai layout yang sama,
-    termasuk latar, sehingga preview, jam utama, dan always-on identik."""
-    return {
-        "Background": {
-            "Preview": img_range(preview_index, 1),
-            "ImageIndex": I_BG,
-        },
-        "Time": {"Digital": time_digital()},
-        "System": {"Date": date_system(), "Data": data_system()},
-        "IdleScreen": {
-            "Time": {"Digital": time_digital()},
-            "Date": date_system(),
-            "Data": data_system(),
-            "BackgroundImageIndex": I_BG,
-        },
-    }
 
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    written = []
+    state = {"i": 0}
 
-    make_background().save(OUT / "0.png")
-    make_badge("AM").save(OUT / "1.png")
-    make_badge("PM").save(OUT / "2.png")
+    def save(img, name):
+        img.save(OUT / f"{state['i']}.png")
+        written.append((state['i'], name))
+        state["i"] += 1
 
-    for d in range(10):
-        make_digit(str(d), 54, 100, FONT_DISPLAY, 91, WHITE, None,
-                   italic=0.0).save(OUT / f"{3 + d}.png")
-        make_digit(str(d), 16, 30, FONT_BOLD, 29).save(OUT / f"{13 + d}.png")
-        make_digit(str(d), 15, 22, FONT_BOLD, 23).save(OUT / f"{23 + d}.png")
+    bg = build_background()
+    bg.alpha_composite(logo_image(), (142, 7))
+    save(bg, "background")
+    save(build_aod_background(), "background AOD")
+    save(logo_image(), "logo (cadangan)")
 
-    make_text_image("--", FONT_BOLD, 30, WHITE).save(OUT / "33.png")
-    make_text_image("%", FONT_BOLD, 20, GRAY_LIGHT).save(OUT / "34.png")
+    # AM / PM
+    for txt in ("AM", "PM"):
+        img = render_text(txt, font(F_MS, 15 * SS), GRAY_LABEL, tracking=1.6)
+        save(img, f"badge {txt}")
 
-    for i, day in enumerate(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]):
-        make_text_image(day, FONT_BOLD, 19, WHITE, tracking=2).save(
-            OUT / f"{35 + i}.png")
+    # Waktu: digit putih (jam) & merah (menit).
+    for fill in (WHITE, RED):
+        for dch in "0123456789":
+            save(make_digit(dch, TIME_CELL[0], TIME_CELL[1], F_INTER, 96,
+                            fill=fill, variation="Black", stretch=0.71),
+                 f"time digit {dch}")
+    # Digit nilai metrik.
+    for dch in "0123456789":
+        save(make_digit(dch, METRIC_CELL[0], METRIC_CELL[1], F_INTER, 27,
+                        fill=WHITE, variation="Black", stretch=0.55),
+             f"metric digit {dch}")    # Digit waktu solar.
+    for dch in "0123456789":
+        save(make_digit(dch, SOLAR_CELL[0], SOLAR_CELL[1], F_INTER, 19,
+                        fill=WHITE, variation="Black", stretch=0.78),
+             f"solar digit {dch}")
+    # Digit suhu cuaca.
+    for dch in "0123456789":
+        save(make_digit(dch, WEATHER_CELL[0], WEATHER_CELL[1], F_INTER, 25,
+                        fill=WHITE, variation="Black", stretch=0.80),
+             f"weather digit {dch}")
 
-    assert I_WEEK == 35
-    preview_index = 44
-    Image.new("RGBA", (360, 360), BLACK + (255,)).save(OUT / "43.png")
-    # Slot 42 used to be the preview. Keep numbered assets contiguous.
-    Image.new("RGBA", (1, 1), (0, 0, 0, 0)).save(OUT / "42.png")
+    # Titik dua solar + nodata + suffix/delimiter.
+    colon = Image.new("RGBA", (7, 14), (0, 0, 0, 0))
+    dc = ImageDraw.Draw(colon)
+    dc.rounded_rectangle([1, 1, 6, 5], radius=2, fill=WHITE + (255,))
+    dc.rounded_rectangle([1, 9, 6, 13], radius=2, fill=WHITE + (255,))
+    save(colon, "solar colon")
+    save(render_text("--:--", font(F_INTER, 18 * SS, "Black"), WHITE,
+                     tracking=0.5), "solar nodata")
+    save(make_cell_image("%", F_INTER, 18, WHITE_SOFT, cell_h=17,
+                         baseline=15, variation="Black", tracking=0),
+         "percent")
+    save(make_cell_image(",", F_INTER, 18, WHITE, cell_h=17, baseline=17,
+                         variation="Black"), "comma")
+    save(make_cell_image("\u00b0C", F_INTER, 13, WHITE, cell_h=16,
+                         baseline=15, variation="Black"), "degree")
+    save(render_text("--", font(F_INTER, 22 * SS, "Black"), WHITE), "nodata")
 
-    (OUT / "watchface.json").write_text(
-        json.dumps(build_params(preview_index), indent=2))
-    print("aset ditulis ke", OUT, "| preview index:", preview_index)
+    # Bulan & hari.
+    for m, img in zip(MONTHS, make_month_images()):
+        save(img, f"month {m}")
+    for dname, img in zip(DAYS_FULL, make_weekday_images()):
+        save(img, f"day {dname}")
+    for dname, img in zip(DAYS_SHORT, make_weekday_short_images()):
+        save(img, f"AOD day {dname}")
+
+    # Banner cuaca (29) + ikon solar (2).
+    for (label, _), img in zip(CONDITIONS, make_weather_banners()):
+        save(img, f"weather {label}")
+    for kind, img in zip(("sunrise", "sunset"), make_solar_banners()):
+        save(img, f"solar {kind}")
+
+    # ------------------------- indeks aset --------------------------------
+    I_BG = 0
+    I_AOD = 1
+    I_LOGO = 2
+    I_AM, I_PM = 3, 4
+    I_TIME_W, I_TIME_R = 5, 15
+    I_METRIC = 25
+    I_SOLAR_D = 35
+    I_WEATHER_D = 45
+    I_SOLAR_COLON = 55
+    I_SOLAR_NODATA = 56
+    I_PCT = 57
+    I_COMMA = 58
+    I_DEG = 59
+    I_NODATA = 60
+    I_MONTH = 61
+    I_DAYFULL = 73
+    I_DAYSHORT = 80
+    I_WEATHER = 87
+    I_SOLAR_ICON = 116
+    assert state["i"] == 118, f"jumlah aset tak terduga: {state['i']}"
+
+    # ------------------------- parameter ----------------------------------
+    time_digital = {
+        "HoursMinutesSeconds": [
+            {"Type": 0, "Independent": True,
+             "Text": number_text(HOUR_X, TIME_Y, I_TIME_W, 10, zeropad=1)},
+            {"Type": 1, "Independent": True,
+             "Text": number_text(MINUTE_X, TIME_Y, I_TIME_R, 10, zeropad=1)},
+        ],
+        "AM": {"Coordinates": {"X": AMPM_XY[0], "Y": AMPM_XY[1]},
+               "ImageRange": {"Language": 2,
+                              "ImageRange": {"ImageIndex": I_AM,
+                                             "ImagesCount": 1}}},
+        "PM": {"Coordinates": {"X": AMPM_XY[0], "Y": AMPM_XY[1]},
+               "ImageRange": {"Language": 2,
+                              "ImageRange": {"ImageIndex": I_PM,
+                                             "ImagesCount": 1}}},
+    }
+
+    # Tanggal: posisi diturunkan dari lebar nyata aset agar "Friday, 12 Sep"
+    # tepat di tengah (kasus referensi).
+    days = make_weekday_images()
+    months = make_month_images()
+    cell_w = days[0].width
+    day_w = 2 * SOLAR_CELL[0]
+    w_fri = days[DAYS_FULL.index("Friday")].width
+    w_sep = months[MONTHS.index("Sep")].width
+    gap1, gap2 = 5, 5
+    day_x = (2 * 180 + gap1 + w_fri - day_w - gap2 - w_sep) // 2
+    month_x = day_x + day_w + gap2
+    week_x = day_x - gap1 - cell_w
+
+    date_system = {
+        "YearMonthDay": [
+            {"Type": 2, "Independent": True,
+             "Text": number_text(day_x, DATE_Y - 1, I_SOLAR_D, 10, zeropad=1)},
+            {"Type": 1, "Independent": True,
+             "Text": number_text(month_x, DATE_Y, I_MONTH, 12, zeropad=0,
+                                 unknown6=1)},
+        ],
+        "Week": {"Independent": True,
+                 "Text": number_text(week_x, DATE_Y, I_DAYFULL, 7,
+                                     zeropad=0, unknown6=1)},
+    }
+
+    def value_text(center_x, width, y, extra=None):
+        x = center_x - width // 2
+        return number_text(x, y, I_METRIC, 10, nodata=I_NODATA,
+                           **(extra or {}))
+
+    data_system = [
+        {"Type": "Battery",
+         "CircleScale": gauge_circle_scale(GAUGES["power"]),
+         "NumberSequence": {"Independent": True,
+                            "Text": value_text(GAUGES["power"]["cx"], 34,
+                                               GAUGES["power"]["value_cy"] - 8,
+                                               {"suffix": I_PCT})}},
+        {"Type": "Steps",
+         "CircleScale": gauge_circle_scale(GAUGES["steps"]),
+         "NumberSequence": {"Independent": True,
+                            "Text": value_text(GAUGES["steps"]["cx"], 44,
+                                               GAUGES["steps"]["value_cy"] - 8,
+                                               {"delimiter": I_COMMA})}},
+        {"Type": "Calories",
+         "CircleScale": gauge_circle_scale(GAUGES["kcal"]),
+         "NumberSequence": {"Independent": True,
+                            "Text": value_text(GAUGES["kcal"]["cx"], 30,
+                                               GAUGES["kcal"]["value_cy"] - 8)}},
+        {"Type": "HeartRate",
+         "CircleScale": gauge_circle_scale(GAUGES["bpm"]),
+         "NumberSequence": {"Independent": True,
+                            "Text": value_text(GAUGES["bpm"]["cx"], 30,
+                                               GAUGES["bpm"]["value_cy"] - 8)}},
+        {"Type": "Weather",
+         "NumberSequence": {"Independent": True,
+                            "Text": number_text(VALUE_TEMP[0], VALUE_TEMP[1],
+                                                I_WEATHER_D, 10, nodata=I_NODATA,
+                                                suffix=I_DEG)}},
+        {"Type": "Weather",
+         "Linear": {"Segments": {"X": WEATHER_BANNER_XY[0],
+                                 "Y": WEATHER_BANNER_XY[1]},
+                    "ImageRange": {"ImageIndex": I_WEATHER,
+                                   "ImagesCount": 29}}},
+        {"Type": "Sunrise",
+         "NumberSequence": {"Independent": True,
+                            "Text": number_text(0, 0, I_SOLAR_D, 10,
+                                                zeropad=1,
+                                                decimal=I_SOLAR_COLON,
+                                                nodata=I_SOLAR_NODATA)}},
+        {"Type": "Sunrise",
+         "Linear": {"Segments": {"X": SOLAR_ICON_XY[0],
+                                 "Y": SOLAR_ICON_XY[1]},
+                    "ImageRange": {"ImageIndex": I_SOLAR_ICON,
+                                   "ImagesCount": 2}}},
+    ]
+    solar_w = 4 * SOLAR_CELL[0] + 7
+    data_system[6]["NumberSequence"]["Text"]["Image"]["X"] = 180 - solar_w // 2
+    data_system[6]["NumberSequence"]["Text"]["Image"]["Y"] = VALUE_SOLAR_CY - 6  # noqa: E501
+
+    # AOD sederhana: jam + hari singkat + tanggal + baterai.
+    aod_week = make_weekday_short_images()[0].width
+    aod_day_w = 2 * METRIC_CELL[0]
+    aod_gap = 8
+    aod_left = 180 - (aod_week + aod_gap + aod_day_w) // 2
+    idle = {
+        "Time": {"Digital": {
+            "HoursMinutesSeconds": [
+                {"Type": 0, "Independent": True,
+                 "Text": number_text(HOUR_X, AOD_TIME_Y, I_TIME_W, 10,
+                                     zeropad=1)},
+                {"Type": 1, "Independent": True,
+                 "Text": number_text(MINUTE_X, AOD_TIME_Y, I_TIME_R, 10,
+                                     zeropad=1)},
+            ],
+        }},
+        "Date": {
+            "YearMonthDay": [
+                {"Type": 2, "Independent": True,
+                 "Text": number_text(aod_left + aod_week + aod_gap, AOD_DATE_Y,
+                                     I_SOLAR_D, 10, zeropad=1)},
+            ],
+            "Week": {"Independent": True,
+                     "Text": number_text(aod_left, AOD_DATE_Y, I_DAYSHORT, 7,
+                                         zeropad=0, unknown6=1)},
+        },
+        "Data": {"Type": "Battery",
+                 "NumberSequence": {"Independent": True,
+                                    "Text": number_text(
+                                        180 - (2 * METRIC_CELL[0] + 14) // 2,
+                                        AOD_BATTERY_Y, I_METRIC, 10,
+                                        nodata=I_NODATA, suffix=I_PCT)}},
+        "BackgroundImageIndex": I_AOD,
+    }
+
+    preview_index = state["i"]
+    params = {
+        "Background": {"Preview": {"Language": 2,
+                                   "ImageRange": {"ImageIndex": preview_index,
+                                                  "ImagesCount": 1}},
+                       "ImageIndex": I_BG},
+        "Time": {"Digital": time_digital},
+        "System": {"Date": date_system, "Data": data_system},
+        "IdleScreen": idle,
+    }
+    (OUT / "watchface.json").write_text(json.dumps(params, indent=2))
+    if not (OUT / "preview.png").exists():
+        Image.new("RGBA", (220, 220), BLACK + (255,)).save(OUT / "preview.png")
+
+    print(f"total aset: {state['i']} + preview 220 (indeks {preview_index})")
+    for i, n in written:
+        print(f"  {i:3d} {n}")
 
 
 if __name__ == "__main__":

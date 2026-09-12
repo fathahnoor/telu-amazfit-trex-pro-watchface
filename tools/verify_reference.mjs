@@ -23,7 +23,8 @@ const raw = fs.readFileSync('out/telu_trex_pro.bin');
 const {parameters, images} = parser.namespace.parseWatchFaceBin(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength), model.fileType);
 const norm = value => Array.isArray(value) ? (value.length === 1 ? norm(value[0]) : value.map(norm)) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([k,v])=>[k,norm(v)])) : value;
 assert.deepEqual(norm(parameters), norm(JSON.parse(fs.readFileSync('build/telu/firmware_params.json', 'utf8'))));
-assert.equal(images.length, 45);
+const srcCount = fs.readdirSync('build/telu').filter(f => /^[0-9]+\.png$/.test(f)).length;
+assert.equal(images.length, srcCount + 1);
 // Resolve by firmware ID, rather than simply comparing two copies of a JSON.
 assert.equal(parameters.Background.ImageIndex, 1);
 const previewId = parameters.Background.Preview.ImageRange.ImageIndex;
@@ -34,4 +35,4 @@ for (const [i, im] of images.entries()) {
   fs.writeFileSync(`build/reference_current/${i}.rgba`, Buffer.from(im.pixels));
   fs.writeFileSync(`build/reference_current/${i}.json`, JSON.stringify([im.width, im.height]));
 }
-console.log('Reference watchface-js: parameters identical, 45 images decoded for T-Rex Pro.');
+console.log(`Reference watchface-js: parameters identical, ${images.length} images decoded for T-Rex Pro.`);

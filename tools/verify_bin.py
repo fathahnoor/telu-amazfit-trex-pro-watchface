@@ -33,7 +33,10 @@ expanded = decompress_uihh(raw)
 assert struct.unpack_from("<I", raw, 32)[0] == len(expanded) - 40
 params, images, _ = unpack(raw)
 print("bin: %d gambar" % len(images))
-assert len(images) == 45, "jumlah gambar harus 45"
+src_files = sorted(SRC.glob("[0-9]*.png"), key=lambda p: int(p.stem))
+assert [int(p.stem) for p in src_files] == list(range(len(src_files))), \
+    "PNG sumber tidak berurutan"
+assert len(images) == len(src_files) + 1, "jumlah gambar harus = aset + preview"
 
 named = json.loads((SRC / "watchface.json").read_text())
 firmware_named = ids_to_names(params)
@@ -46,8 +49,8 @@ print("params sama: True")
 
 bad = 0
 maxd = 0
-for i in range(44):
-    src_img = Image.open(SRC / f"{i}.png").convert("RGBA")
+for i, src in enumerate(src_files):
+    src_img = Image.open(src).convert("RGBA")
     w, h, px = decode_image(images[i])
     assert (w, h) == src_img.size, (i, (w, h), src_img.size)
     a, b = src_img.tobytes(), px
@@ -57,7 +60,7 @@ for i in range(44):
     if d > 8:
         bad += 1
         print("img %d delta besar: %d" % (i, d))
-w, h, px = decode_image(images[44])
+w, h, px = decode_image(images[len(src_files)])
 src_prev = Image.open(SRC / "preview.png").convert("RGBA")
 d = max(abs(x - y) for x, y in zip(src_prev.tobytes(), px))
 maxd = max(maxd, d)
@@ -81,6 +84,6 @@ report = {"file": BIN.name, "sha256": hashlib.sha256(raw).hexdigest(),
           "bytes": len(raw), "format": "UIHH v2 compressed", "images": len(images),
           "params_equal": True, "max_pixel_delta": maxd,
           "container_checks": container_checks, "image_reference_checks": image_checks,
-          "device_test": "compat v4 aktif dan berjalan di T-Rex Pro (laporan pengguna, 12 September 2026)",
-          "previous_device_result": "Compat v3 tampil di jam 2026-09-12; merah tampil biru karena urutan byte gambar dan Alignment Right tidak dihormati firmware"}
+          "device_test": "v5 TELKOM UNIVERSITY menunggu uji perangkat",
+          "previous_device_result": "Compat v4 aktif dan berjalan di T-Rex Pro (laporan pengguna, 12 September 2026)"}
 (REPO / "out" / "validation.json").write_text(json.dumps(report, indent=2))

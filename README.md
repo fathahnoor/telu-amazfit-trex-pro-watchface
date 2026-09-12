@@ -1,51 +1,61 @@
-# 🔴 TEL-U REDLINE | Watchface Amazfit T-Rex Pro
+# 🎓 TELKOM UNIVERSITY | Watchface Amazfit T-Rex Pro
 
-**Bawa identitas Telkom University ke pergelangan tanganmu!** 👋⌚
-Halo Telyutizen! TEL-U REDLINE adalah watchface untuk **Amazfit T-Rex Pro**
-(layar bulat 360 x 360) dengan merah khas Tel-U, angka jam super besar, dan
-info harian lengkap. Sudah jalan mulus di jam sungguhan. 🔥
+**Kampus di pergelangan tanganmu.** 💜
+Hai, Telyutizen! Edisi **TELKOM UNIVERSITY** hadir dengan silhouette Gedung
+Balai Sidang dan Menara Tel-U, untaian semboyan **Harmony, Excellence,
+Integrity**, dan aksen merah khas almamater kita. Jamnya besar dan tegas,
+informasinya lengkap dalam sekali lirik. Sudah jalan mulus di jam sungguhan. 🎉
 
-![Tampilan utama TEL-U REDLINE](out/preview.png)
+![Tampilan utama TELKOM UNIVERSITY](out/preview.png)
 
 ## ✨ Kenapa kamu bakal suka
 
-- 🔴 **Merah khas Tel-U** di kapsul menit, chip brand, dan aksen dial.
-- 🕐 **Jam besar banget**, sekali lirik langsung kebaca.
-- 📊 **Info lengkap dalam satu layar:** hari, tanggal, AM/PM, kalori, langkah,
-  denyut jantung, dan baterai.
-- 🌙 **Always-on nggak nanggung:** semua info tetap tampil, bukan cuma jam.
-- 🔋 **Ramah AMOLED:** latar hitam pekat, pixel benar-benar mati, baterai lebih awet.
-- ✅ **Aman di layar bulat:** semua elemen sudah dihitung agar tidak kepotong bezel.
+- 🏛️ **Wajah kampus** yang langsung bikin inget jalanan Setiabudi.
+- 🕐 **Jam besar, warna berpasangan** — putih di kiri, merah di kanan.
+- ☀️ **Cuaca + jarum matahari:** suhu terkini dan satu penghitung pintar yang
+  otomatis nunjukin **matahari terbit** sebelum siang, lalu **terbenam** di
+  sore hari. Sekali pasang, nggak perlu ganti-ganti.
+- 👟 **Satu layar, semua ritme:** langkah, denyut jantung, kalori, dan baterai
+  dalam cincin-cincin rapi.
+- 🌙 **Always-on nanggung? Nggak.** Jam, hari, tanggal, dan baterai tetap
+  tampil tanpa bikin panel utama "teriak-teriak".
+- 🔋 **Ramah AMOLED:** hitam pekat bikin layar hemat tenaga.
+- ⚪ **Aman di layar bulat:** semua elemen sudah dihitung supaya nggak
+  kepotong bezel.
 
-## 📸 Galeri tampilan
+## 🖼️ Galeri tampilan
 
-| Siang hari 🔥 | Always-on 🌙 |
+| Siang hari ☀️ | Matahari terbit 🌅 |
 | :---: | :---: |
-| ![Tampilan utama](out/preview.png) | ![Always-on](out/preview_idle.png) |
+| ![Tampilan utama](out/preview.png) | ![Situasi matahari terbit](out/preview_sunrise.png) |
 
-| Data maksimum 🔝 | Tengah malam 🌚 |
+| Always-on 🌙 | Data maksimum 💪 |
 | :---: | :---: |
-| ![Nilai maksimum](out/preview_max.png) | ![Tengah malam](out/preview_zero.png) |
+| ![Always-on](out/preview_idle.png) | ![Nilai maksimum](out/preview_max.png) |
 
-*Gambar di atas adalah render dari isi file `.bin` (simulasi), bukan foto jam,
-supaya kamu bisa lihat semua skenario tampilan.*
+*Semua gambar adalah render dari isi file `.bin` yang sudah diverifikasi
+(simulasi), bukan foto jam — biar kamu bisa lihat semua skenario tampilan
+sebelum pasang.*
 
-## 📥 Cara pasang (5 menit, gampang!)
+## 📲 Cara pasang (5 menit, gampang!)
 
-1. **Unduh** file [`out/telu_redline_compat_v4.bin`](out/telu_redline_compat_v4.bin)
-   (klik tombol **Download** di halaman file itu).
+1. **Unduh** file
+   [`out/telu_trex_pro.bin`](out/telu_trex_pro.bin) (klik **Download** di
+   halaman file itu). Alias dengan nama produk ada di
+   [`out/telu_university_v5.bin`](out/telu_university_v5.bin).
 2. Siapkan **AmazFaces** di HP, pastikan jam tersambung, lalu pilih perangkat
    **Amazfit T-Rex Pro** (360 x 360).
 3. Buka menu **Add file / file lokal** di AmazFaces, lalu pilih file `.bin`
    tadi. Nama menu bisa berbeda tergantung versi aplikasi.
-4. Ikuti proses instalasi sampai selesai, lalu aktifkan TEL-U REDLINE dari
-   daftar watchface jam kamu. ✅
-5. Kalau bingung, panduan lengkap ada di [`docs/build-install.md`](docs/build-install.md).
+4. Ikuti proses instalasi sampai selesai, lalu aktifkan **TELKOM UNIVERSITY**
+   dari daftar watchface di jam kamu. 🎓
+5. Kalau bingung, panduan lengkap ada di
+   [`docs/build-install.md`](docs/build-install.md).
 
-> 💡 Ini format legacy UIHH v2 khusus T-Rex Pro, bukan paket Zepp OS.
+> ⚠️ Ini format legacy **UIHH v2** khusus T-Rex Pro, bukan paket Zepp OS.
 > Jangan pilih model T-Rex biasa ya, nanti gagal.
 
-## 🛠️ Buat yang hobi ngoprek
+## 🧰 Buat yang hobi ngoprek
 
 Watchface ini dibangun dari nol pakai Python, tanpa SDK Zepp. Semua script ada
 di `tools/`:
@@ -55,33 +65,50 @@ python tools/build_all.py
 python -m unittest discover -s tools -p "test_*.py"
 ```
 
-- `tools/gen_telu.py`: generator aset dan parameter layout.
-- `tools/pack_watchface.py`: packer `.bin` UIHH v2 dengan kompresi ala file asli.
-- `tools/verify_bin.py`: verifikasi hasil build (kompresi, header, dan piksel).
+- `tools/gen_telu.py`: generator aset dan parameter layout (latar diekstrak
+  dari desain referensi, area dinamis ditambal, ikon & angka digambar ulang).
+- `tools/check_round.py`: penjaga lingkaran — build gagal kalau ada elemen
+  keluar dari radius layar.
+- `tools/pack_watchface.py`: packer `.bin` UIHH v2 dengan kompresi ala file
+  asli.
+- `tools/verify_bin.py`: verifikasi hasil build (kompresi, header, parameter,
+  dan piksel round-trip).
+- `tools/render_mockup.py`: simulator tampilan dari isi `.bin`, dipakai untuk
+  semua gambar di atas.
 - `preview.html`: halaman preview interaktif dengan pilihan skenario.
-- `docs/compatibility-fix-v4.md`: catatan teknis lengkap uji di perangkat.
+- [`docs/compatibility-fix-v4.md`](docs/compatibility-fix-v4.md): catatan
+  teknis lengkap uji di perangkat (masih relevan untuk semua edisi).
+- [`docs/v5-format-notes.md`](docs/v5-format-notes.md): catatan riset format
+  untuk cuaca, matahari, dan nama bulan.
 - `out/validation.json`: ukuran, SHA-256, dan hasil validasi build terakhir.
 
-## 🗒️ Riwayat singkat
+## 📅 Riwayat singkat
 
 | Revisi | Kabar |
 | :--- | :--- |
-| **v4** (12 Sep 2026) | ✅ Berjalan di jam. Warna merah diperbaiki, posisi jam terkunci, always-on sama dengan tampilan utama. |
+| **v5** (12 Sep 2026) | 🎓 Edisi **TELKOM UNIVERSITY**: wajah kampus, modul cuaca + matahari terbit/terbenam, empat cincin metrik, dan always-on ringkas. |
+| v4 (12 Sep 2026) | ✅ Berjalan di jam. Warna merah diperbaiki, posisi jam terkunci, always-on sama dengan tampilan utama. |
 | v3 | Perbaikan referensi gambar (ID mulai 1), watchface muncul di koleksi jam. |
 | v2 | Percobaan pertama, preview hitam, belum berhasil. |
 
-## 🙏 Kredit & catatan
+## 💜 Kredit & catatan
 
-- Font [Anton](https://fonts.google.com/specimen/Anton) dan
-  [Rajdhani](https://fonts.google.com/specimen/Rajdhani) dari Google Fonts
-  (lisensi OFL).
+- Font [Montserrat](https://fonts.google.com/specimen/Montserrat) dan
+  [Inter](https://fonts.google.com/specimen/Inter) dari Google Fonts (lisensi
+  OFL).
+- Logo resmi Telkom University dari
+  [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Telkom_University_logo.svg),
+  karya Hilfans, lisensi CC BY-SA 4.0 — dipakai dengan penghormatan untuk
+  keperluan personal.
+- Ikon Material Design Icons (Pictogrammers) untuk sepatu, hati, api, dan
+  baterai.
 - Format file dan skema parameter mengacu ke proyek
   [watchface-js](https://github.com/Nadeflore/watchface-js) oleh Nadeflore
   (GPL-3.0), dengan implementasi packer sendiri.
 - Warna mengikuti
   [palet resmi Telkom University](https://it.telkomuniversity.ac.id/kode-warna-logo-telkom-university/).
 - Dibuat oleh [@fathahnoor](https://github.com/fathahnoor), periset aktif di
-  Fakultas Ilmu Terapan, Telkom University. 💙
-- Proyek personal non-komersial. Bukan produk resmi Telkom University, ya.
+  Fakultas Ilmu Terapan, Telkom University. 👋
+- Proyek personal non-komersial. **Bukan produk resmi Telkom University**, ya.
 
-**Selamat bergaya, Telyutizen!** Jangan lupa pamer ke teman sekelas. 😎🔴
+**Selamat bergaya, Telyutizen!** Jangan lupa pamer ke teman sekelas. 🎓💜
