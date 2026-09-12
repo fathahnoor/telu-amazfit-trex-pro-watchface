@@ -8,7 +8,7 @@ v5/v5_preview-reference.png:
   kampus di bawah yang diekstrak dari referensi.
 - Logo resmi Telkom University (Wikimedia Commons) dengan wordmark putih.
 - Waktu utama: jam putih + titik dua & menit merah (dua set digit).
-- Tanggal "Friday, 12 Sep": 7 nama hari + 12 gambar bulan.
+- Tanggal "Fri, 12 Sep": satu font monospace dan baris yang terpusat.
 - Empat gauge melingkar: STEPS, BPM, POWER, KCAL (busur CircleScale).
 - Modul solar dinamis "SUNRISE/SUNSET terdekat" (data Sunrise, tipe 12):
   pasangan gambar ikon+label dengan pita tengah transparan untuk angka
@@ -52,6 +52,8 @@ F_INTER = str(FONTS / "Inter-Variable.ttf")
 F_MS = str(FONTS / "Montserrat-SemiBold.ttf")
 F_MB = str(FONTS / "Montserrat-Bold.ttf")
 F_MM = str(FONTS / "Montserrat-Medium.ttf")
+F_DATE = str(FONTS / "CascadiaMono.ttf")
+DATE_CELL = (8, 18)
 
 SS = 4  # supersampling teks/angka
 
@@ -415,21 +417,23 @@ DAYS_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
 
 def make_month_images():
-    fnt = font(F_MB, 13 * SS)
-    return [render_text(m, fnt, WHITE_SOFT, tracking=0.4) for m in MONTHS]
+    return [date_text(m) for m in MONTHS]
 
 
 def make_weekday_images():
-    fnt = font(F_MB, 13 * SS)
-    rendered = [render_text(d + ",", fnt, WHITE, tracking=0.4)
-                for d in DAYS_FULL]
-    cell_w = max(r.width for r in rendered) + 4
-    out = []
-    for r in rendered:
-        img = Image.new("RGBA", (cell_w, r.height), (0, 0, 0, 0))
-        img.alpha_composite(r, (cell_w - r.width, 0))
-        out.append(img)
-    return out
+    return [date_text(d.title() + ",") for d in DAYS_SHORT]
+
+
+def date_text(text):
+    """Shared font, advance, color and baseline for every date character."""
+    cw, ch = DATE_CELL
+    image = Image.new("RGBA", (cw * len(text) * SS, ch * SS))
+    draw = ImageDraw.Draw(image)
+    fnt = font(F_DATE, 13 * SS, "Bold")
+    for i, char in enumerate(text):
+        x = i * cw * SS + (cw * SS - fnt.getlength(char)) / 2
+        draw.text((x, 14 * SS), char, font=fnt, fill=WHITE + (255,), anchor="ls")
+    return image.resize((cw * len(text), ch), Image.LANCZOS)
 
 
 def make_weekday_short_images():
@@ -653,6 +657,8 @@ def main():
         save(img, f"weather {label}")
     for kind, img in zip(("sunrise", "sunset"), make_solar_banners()):
         save(img, f"solar {kind}")
+    for digit in "0123456789":
+        save(date_text(digit), f"date digit {digit}")
 
     # ------------------------- indeks aset --------------------------------
     I_BG = 0
@@ -674,7 +680,8 @@ def main():
     I_DAYSHORT = 80
     I_WEATHER = 87
     I_SOLAR_ICON = 116
-    assert state["i"] == 118, f"jumlah aset tak terduga: {state['i']}"
+    I_DATE_D = 118
+    assert state["i"] == 128, f"jumlah aset tak terduga: {state['i']}"
 
     # ------------------------- parameter ----------------------------------
     time_digital = {
@@ -694,23 +701,16 @@ def main():
                                              "ImagesCount": 1}}},
     }
 
-    # Tanggal: posisi diturunkan dari lebar nyata aset agar "Friday, 12 Sep"
-    # tepat di tengah (kasus referensi).
-    days = make_weekday_images()
-    months = make_month_images()
-    cell_w = days[0].width
-    day_w = 2 * SOLAR_CELL[0]
-    w_fri = days[DAYS_FULL.index("Friday")].width
-    w_sep = months[MONTHS.index("Sep")].width
-    gap1, gap2 = 5, 5
-    day_x = (2 * 180 + gap1 + w_fri - day_w - gap2 - w_sep) // 2
-    month_x = day_x + day_w + gap2
-    week_x = day_x - gap1 - cell_w
+    # Eleven fixed advances: "Fri, 12 Sep". Every date has the same width,
+    # so the complete line stays centered without runtime repositioning.
+    week_x = CX - 11 * DATE_CELL[0] // 2
+    day_x = week_x + 5 * DATE_CELL[0]
+    month_x = week_x + 8 * DATE_CELL[0]
 
     date_system = {
         "YearMonthDay": [
             {"Type": 2, "Independent": True,
-             "Text": number_text(day_x, DATE_Y, I_SOLAR_D, 10, zeropad=1)},
+             "Text": number_text(day_x, DATE_Y, I_DATE_D, 10, zeropad=1)},
             {"Type": 1, "Independent": True,
              "Text": number_text(month_x, DATE_Y, I_MONTH, 12, zeropad=0,
                                  unknown6=1)},
@@ -720,36 +720,38 @@ def main():
                                      zeropad=0, unknown6=1)},
     }
 
-    def value_text(center_x, width, y, extra=None):
-        x = center_x - width // 2
+    def value_text(center_x, max_digits, y, extra=None):
+        suffix_width = percent_width if extra and "suffix" in extra else 0
+        # Firmware centers the number within its maximum-digit box and
+        # appends the unit afterward. Compensate for the unit as a group.
+        x = center_x - (max_digits * METRIC_CELL[0] + 1) // 2 - suffix_width // 2
         return number_text(x, y, I_METRIC, 10, nodata=I_NODATA,
-                           **(extra or {}))
+                           align="Center", **(extra or {}))
 
     percent_width = Image.open(OUT / f"{I_PCT}.png").width
-    comma_width = Image.open(OUT / f"{I_COMMA}.png").width
 
     data_system = [
         {"Type": "Battery",
          "CircleScale": gauge_circle_scale(GAUGES["power"]),
          "NumberSequence": {"Independent": True,
-                            "Text": value_text(GAUGES["power"]["cx"], 30 + percent_width,
+                            "Text": value_text(GAUGES["power"]["cx"], 3,
                                                GAUGES["power"]["value_cy"] - 8,
                                                {"suffix": I_PCT})}},
         {"Type": "Steps",
          "CircleScale": gauge_circle_scale(GAUGES["steps"]),
          "NumberSequence": {"Independent": True,
-                            "Text": value_text(GAUGES["steps"]["cx"], 50 + comma_width,
+                            "Text": value_text(GAUGES["steps"]["cx"], 5,
                                                GAUGES["steps"]["value_cy"] - 8,
                                                {"delimiter": I_COMMA})}},
         {"Type": "Calories",
          "CircleScale": gauge_circle_scale(GAUGES["kcal"]),
          "NumberSequence": {"Independent": True,
-                            "Text": value_text(GAUGES["kcal"]["cx"], 40,
+                            "Text": value_text(GAUGES["kcal"]["cx"], 4,
                                                GAUGES["kcal"]["value_cy"] - 8)}},
         {"Type": "HeartRate",
          "CircleScale": gauge_circle_scale(GAUGES["bpm"]),
          "NumberSequence": {"Independent": True,
-                            "Text": value_text(GAUGES["bpm"]["cx"], 30,
+                            "Text": value_text(GAUGES["bpm"]["cx"], 3,
                                                GAUGES["bpm"]["value_cy"] - 8)}},
         {"Type": "Weather",
          "NumberSequence": {"Independent": True,

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PIL import Image, ImageChops
 
-from render_mockup import load, as_list
+from render_mockup import load, as_list, number_start
 
 MAX_DIGITS = {"Battery": 3, "Steps": 5, "HeartRate": 3, "Calories": 4,
               "Weather": 2, "Sunrise": 4}
@@ -44,6 +44,15 @@ def layout_errors(folder):
         minimum = maximum if solar else (2 if txt.get("ZeroPadding") else 1)
         for length in range(minimum, maximum + 1):
             x, y = node["X"], node["Y"]
+            width = images[base].width * length
+            separators = []
+            if solar:
+                separators.append(node["DecimalPointImageIndex"])
+            elif length > 3 and "DelimiterImageIndex" in node:
+                separators.append(node["DelimiterImageIndex"])
+            width += sum(images[i].width for i in separators)
+            width += txt.get("Spacing", 0) * (length + len(separators) - 1)
+            x = number_start(txt, images[base].width, width, maximum)
             for i in range(length):
                 separator = (node.get("DecimalPointImageIndex") if solar and i == 2
                              else node.get("DelimiterImageIndex")

@@ -37,7 +37,23 @@ def imgs_range(rng):
     return [base + i for i in range(rng["ImagesCount"])]
 
 
-def draw_number(canvas, imgs, text_cfg, digits, value=None):
+def number_start(text_cfg, cell_width, actual_width, max_digits):
+    """UIHH alignment is relative to a reserved digit box, not an X anchor.
+
+    Matches Draw_dagital_text in the SashaCX75 editor. Suffixes follow
+    the aligned number, so their width is compensated in the stored X.
+    """
+    x = text_cfg["Image"]["X"]
+    reserved = cell_width * max_digits + 1
+    reserved += max(0, text_cfg.get("Spacing", 0)) * (max_digits - 1)
+    if text_cfg.get("Alignment") == "Center":
+        x += reserved // 2 - actual_width // 2
+    elif text_cfg.get("Alignment") == "Right":
+        x += reserved - actual_width
+    return x
+
+
+def draw_number(canvas, imgs, text_cfg, digits, value=None, max_digits=None):
     digits = str(digits)
     node = text_cfg["Image"]
     x, y = node["X"], node["Y"]
@@ -51,6 +67,7 @@ def draw_number(canvas, imgs, text_cfg, digits, value=None):
     delim = node.get("DelimiterImageIndex")
     if delim is not None and len(digits) > 3:
         digits = digits[:-3] + "," + digits[-3:]
+    cells = []
     for ch in digits:
         if ch == ",":
             cell = imgs[delim]
@@ -58,8 +75,15 @@ def draw_number(canvas, imgs, text_cfg, digits, value=None):
             continue
         else:
             cell = imgs[base + int(ch)]
+        cells.append(cell)
+    spacing = text_cfg.get("Spacing", 0)
+    width = sum(cell.width for cell in cells) + spacing * max(0, len(cells) - 1)
+    x = number_start(text_cfg, imgs[base].width, width, max_digits or len(cells))
+    for cell in cells:
         canvas.alpha_composite(cell, (int(x), int(y)))
-        x += cell.width + text_cfg.get("Spacing", 0)
+        x += cell.width + spacing
+    if cells:
+        x -= spacing
     suffix = node.get("SuffixImage")
     if suffix:
         s = imgs[suffix["ImageRange"]["ImageIndex"]]
@@ -131,19 +155,19 @@ def draw_data(canvas, imgs, data_list, args):
     if "Steps" in data:
         draw_gauge(canvas, imgs, data["Steps"], args["steps"] / 10000.0)
         txt = data["Steps"]["NumberSequence"]["Text"]
-        draw_number(canvas, imgs, txt, args["steps"])
+        draw_number(canvas, imgs, txt, args["steps"], max_digits=5)
     if "HeartRate" in data:
         draw_gauge(canvas, imgs, data["HeartRate"], args["hr"] / 220.0)
         txt = data["HeartRate"]["NumberSequence"]["Text"]
-        draw_number(canvas, imgs, txt, args["hr"])
+        draw_number(canvas, imgs, txt, args["hr"], max_digits=3)
     if "Calories" in data:
         draw_gauge(canvas, imgs, data["Calories"], args["kcal"] / 1000.0)
         txt = data["Calories"]["NumberSequence"]["Text"]
-        draw_number(canvas, imgs, txt, args["kcal"])
+        draw_number(canvas, imgs, txt, args["kcal"], max_digits=4)
     if "Battery" in data:
         draw_gauge(canvas, imgs, data["Battery"], args["batt"] / 100.0)
         txt = data["Battery"]["NumberSequence"]["Text"]
-        draw_number(canvas, imgs, txt, args["batt"])
+        draw_number(canvas, imgs, txt, args["batt"], max_digits=3)
 
     # Cuaca: ikon (Linear) + suhu (NumberSequence).
     weather = [e for e in as_list(data_list) if e["Type"] == "Weather"]

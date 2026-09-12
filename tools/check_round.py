@@ -59,10 +59,12 @@ def number_box(folder, text_cfg, ndigits, suffix_index=None, delim_index=None):
         total += sw
         cell_h = max(cell_h, sh)
     align = text_cfg.get("Alignment", "Left")
+    suffix_width = dims(folder, suffix_index)[0] if suffix_index is not None else 0
+    reserved = cell_w * ndigits + 1 + max(0, text_cfg.get("Spacing", 0)) * (ndigits - 1)
     if align == "Right":
-        x = x0 - total
+        x = x0 + reserved - (total - suffix_width)
     elif align == "Center":
-        x = x0 - total // 2
+        x = x0 + reserved // 2 - (total - suffix_width) // 2
     else:
         x = x0
     return x, y0, total, cell_h
