@@ -1,5 +1,6 @@
 """Regression checks v5 TELKOM UNIVERSITY (container, params, sprite, warna)."""
 import json
+import math
 import struct
 import unittest
 from unittest.mock import patch
@@ -9,7 +10,7 @@ from PIL import Image
 
 from gen_telu import make_digit, F_INTER, TIME_CELL, svg_icon, HEART
 from check_layout import layout_errors
-from render_mockup import load, draw_number, draw_date
+from render_mockup import load, draw_number, draw_date, draw_gauge
 from check_round import number_box
 from trexpro_wf import (validate_trexpro_container, unpack, ids_to_names,
                         decode_image, encode_image)
@@ -171,6 +172,34 @@ class WatchfaceV5Tests(unittest.TestCase):
 
     def test_dynamic_variants_do_not_overlap(self):
         self.assertEqual(layout_errors(ROOT / 'build/verified_bin'), [])
+
+    def test_gauges_close_at_maximum_and_clamp_overflow(self):
+        params, images = load(ROOT / 'build/verified_bin')
+        for entry in params['System']['Data']:
+            if 'CircleScale' not in entry:
+                continue
+            gauge = entry['CircleScale']
+            angle = gauge['Angle']
+            self.assertEqual(angle['EndAngle'] - angle['StartAngle'], 360)
+            full = Image.new('RGBA', (360, 360))
+            draw_gauge(full, images, entry, 1)
+            radius = angle['Radius'] - gauge['Width'] / 2
+            for degree in range(360):
+                rad = math.radians(degree)
+                point = (round(angle['X'] + radius * math.cos(rad)),
+                         round(angle['Y'] + radius * math.sin(rad)))
+                self.assertGreater(full.getpixel(point)[3], 200,
+                                   (entry['Type'], degree))
+            overflow = Image.new('RGBA', (360, 360))
+            draw_gauge(overflow, images, entry, 2)
+            self.assertEqual(overflow.tobytes(), full.tobytes())
+            empty = Image.new('RGBA', (360, 360))
+            draw_gauge(empty, images, entry, 0)
+            self.assertIsNone(empty.getbbox())
+            half = Image.new('RGBA', (360, 360))
+            draw_gauge(half, images, entry, 0.5)
+            self.assertGreater(half.getpixel((round(angle['X'] + radius), angle['Y']))[3], 200)
+            self.assertEqual(half.getpixel((round(angle['X'] - radius), angle['Y']))[3], 0)
 
     def test_metric_groups_stay_centered_for_every_digit_length(self):
         params, images = load(ROOT / 'build/verified_bin')

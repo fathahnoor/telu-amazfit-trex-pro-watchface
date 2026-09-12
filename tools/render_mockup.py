@@ -105,9 +105,13 @@ def draw_gauge(canvas, imgs, entry, frac, radius_offset=0):
     w = entry["CircleScale"].get("Width", 7)
     if frac <= 0:
         return
-    d.arc([(cx - r) * ss, (cy - r) * ss, (cx + r) * ss, (cy + r) * ss],
-          start=(start + 270) % 360, end=(end + 270) % 360,
-          fill=RED, width=w * ss)
+    box = [(cx - r) * ss, (cy - r) * ss, (cx + r) * ss, (cy + r) * ss]
+    if end - start >= 360:
+        # Modulo would turn 360 degrees into a zero-length arc.
+        d.ellipse(box, outline=RED, width=w * ss)
+    else:
+        d.arc(box, start=(start + 270) % 360, end=(end + 270) % 360,
+              fill=RED, width=w * ss)
     canvas.alpha_composite(layer.resize(canvas.size, Image.LANCZOS))
 
 

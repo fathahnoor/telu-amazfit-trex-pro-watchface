@@ -35,7 +35,7 @@ def main():
     run("tools/render_mockup.py", "build/verified_bin", "out/preview.png")
     run("tools/render_mockup.py", "build/verified_bin", "out/preview_max.png",
         "--time", "1259", "--steps", "99999", "--kcal", "9999",
-        "--hr", "199", "--batt", "100", "--day", "31", "--wday", "0",
+        "--hr", "220", "--batt", "100", "--day", "31", "--wday", "0",
         "--month", "12", "--ampm", "PM", "--temp", "35", "--cond", "0")
     run("tools/render_mockup.py", "build/verified_bin", "out/preview_zero.png",
         "--time", "0007", "--steps", "0", "--kcal", "0", "--hr", "0",

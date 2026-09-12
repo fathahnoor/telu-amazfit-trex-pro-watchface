@@ -558,8 +558,8 @@ def build_aod_background():
 
 def gauge_circle_scale(g, color="0xFFFF2029", width=5):
     return {
-        "Angle": {"X": g["cx"], "Y": g["cy"], "StartAngle": 220.0,
-                  "EndAngle": 500.0, "Radius": float(g["r"])},
+        "Angle": {"X": g["cx"], "Y": g["cy"], "StartAngle": 0.0,
+                  "EndAngle": 360.0, "Radius": float(g["r"])},
         "Color": color, "Width": width, "Flatness": 180,
     }
 
