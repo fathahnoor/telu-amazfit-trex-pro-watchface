@@ -1,22 +1,22 @@
 {
   "file": "telu_trex_pro.bin",
-  "sha256": "fc3e2b50b0106bec1852cbf1b9b21c8e140375813c6e4fdf211d6e78d8b03e87",
-  "bytes": 367720,
+  "sha256": "b03e440bad63572207bd29895e357ba7607d36f5bf6d8edd02b5922b083cdd68",
+  "bytes": 360811,
   "format": "UIHH v2 compressed",
-  "images": 119,
+  "images": 129,
   "params_equal": true,
   "max_pixel_delta": 0,
   "container_checks": {
     "device_id": 83,
-    "quicklz_blocks": 469,
+    "quicklz_blocks": 462,
     "decoded_block_bytes": 4096,
-    "raw_tail_bytes": 832,
+    "raw_tail_bytes": 1516,
     "format_marker": 1
   },
   "image_reference_checks": {
     "image_id_base": 1,
     "background_id": 1,
-    "preview_id": 119
+    "preview_id": 129
   },
   "device_test": "v5 TELKOM UNIVERSITY menunggu uji perangkat",
   "previous_device_result": "Compat v4 aktif dan berjalan di T-Rex Pro (laporan pengguna, 12 September 2026)"

@@ -8,18 +8,22 @@ berlaku untuk v4.
 
 ![Tampilan utama TELKOM UNIVERSITY](out/preview.png)
 
-## ✨ Kenapa kamu bakal suka
+## Tampilan terbaru
 
 - 🏛️ **Wajah kampus** dengan logo dan ilustrasi kampus Tel-U.
 - 🕐 **Jam besar, warna berpasangan** - putih di kiri, merah di kanan.
 - ☀️ **Cuaca + jarum matahari:** suhu terkini dan satu penghitung pintar yang
   disiapkan untuk **matahari terbit/terbenam**. Pergantian otomatisnya
   masih perlu diperiksa di perangkat.
-- 👟 **Satu layar, semua ritme:** langkah, denyut jantung, kalori, dan baterai
-  dalam cincin-cincin rapi.
-- 🌙 **Always-on nanggung? Nggak.** Seluruh item mode normal tetap
+- **Angka rata tengah:** nilai STEPS, BPM, POWER, dan KCAL tetap di tengah
+  saat jumlah digit berubah. Persen baterai dipusatkan bersama angkanya;
+  label tiap cincin juga berada di tengah.
+- **Tanggal seragam:** format `Fri, 12 Sep` memakai Cascadia Mono Bold
+  13 px untuk hari, angka tanggal, dan bulan, dengan garis dasar yang sama.
+  Lebar baris tetap sehingga posisinya selalu di tengah.
+- **Always-on lengkap:** Seluruh item mode normal tetap
   tampil, dengan posisi dan warna yang sama.
-- 🔋 **Ramah AMOLED:** hitam pekat bikin layar hemat tenaga.
+- **Latar hitam AMOLED:** konsumsi baterai untuk always-on lengkap belum diukur.
 - ⚪ **Aman di layar bulat:** semua elemen sudah dihitung supaya nggak
   kepotong bezel. Validator tambahan menolak tabrakan antarelemen.
 
@@ -33,11 +37,15 @@ berlaku untuk v4.
 | :---: | :---: |
 | ![Always-on](out/preview_idle.png) | ![Nilai maksimum](out/preview_max.png) |
 
+| Nilai nol, seluruh angka pendek |
+| :---: |
+| ![Nilai nol rata tengah](out/preview_zero.png) |
+
 *Semua gambar adalah render dari isi file `.bin` yang sudah diverifikasi
 (simulasi), bukan foto jam - biar kamu bisa lihat semua skenario tampilan
 sebelum pasang.*
 
-## 📲 Cara pasang (5 menit, gampang!)
+## Cara pasang
 
 1. **Unduh** file
    [`out/telu_trex_pro.bin`](out/telu_trex_pro.bin) (klik **Download** di
@@ -55,7 +63,7 @@ sebelum pasang.*
 > ⚠️ Ini format legacy **UIHH v2** khusus T-Rex Pro, bukan paket Zepp OS.
 > Jangan pilih model T-Rex biasa ya, nanti gagal.
 
-## 🧰 Buat yang hobi ngoprek
+## Build dan validasi
 
 Watchface ini dibangun dari nol pakai Python, tanpa SDK Zepp. Semua script ada
 di `tools/`:
@@ -78,6 +86,8 @@ python -m unittest discover -s tools -p "test_*.py"
 - `tools/render_mockup.py`: simulator tampilan dari isi `.bin`, dipakai untuk
   semua gambar di atas.
 - `preview.html`: halaman preview interaktif dengan pilihan skenario.
+- [`docs/centering-v5.md`](docs/centering-v5.md): detail rata tengah, font
+  tanggal, dan batas verifikasi di perangkat.
 - [`docs/compatibility-fix-v4.md`](docs/compatibility-fix-v4.md): catatan
   teknis lengkap uji di perangkat (masih relevan untuk semua edisi).
 - [`docs/v5-format-notes.md`](docs/v5-format-notes.md): catatan riset format
@@ -86,17 +96,29 @@ python -m unittest discover -s tools -p "test_*.py"
 - [`docs/layout-repair-v5.md`](docs/layout-repair-v5.md): penyebab tumpukan,
   perbaikan, dan hasil pengujian layout.
 
+Validasi terbaru: 20 test lulus, termasuk angka dengan berbagai panjang
+hingga nilai maksimum, 2.604 kombinasi hari/tanggal/bulan, dan kesamaan
+piksel mode normal dengan always-on. Selisih pusat hasil render maksimal
+0,5 piksel. Pemeriksaan tabrakan serta batas layar bulat juga lulus.
+
+Rata tengah memakai parameter alignment dalam `.bin`; preview mengikuti
+perhitungan editor komunitas. Perilaku alignment pada firmware jam masih
+perlu diperiksa langsung. Hasil simulasi tidak dianggap sebagai uji perangkat.
+
 ## 📅 Riwayat singkat
 
 | Revisi | Kabar |
 | :--- | :--- |
-| **v5** (12 Sep 2026) | 🎓 Edisi **TELKOM UNIVERSITY**: wajah kampus, modul cuaca + matahari terbit/terbenam, empat cincin metrik, dan always-on lengkap, sama dengan mode normal. |
+| **v5** (12 Sep 2026) | 🎓 Edisi **TELKOM UNIVERSITY**: wajah kampus, modul cuaca + matahari terbit/terbenam, empat metrik rata tengah, tanggal singkat dengan font seragam, dan always-on lengkap yang sama dengan mode normal. |
 | v4 (12 Sep 2026) | ✅ Berjalan di jam. Warna merah diperbaiki, posisi jam terkunci, always-on sama dengan tampilan utama. |
 | v3 | Perbaikan referensi gambar (ID mulai 1), watchface muncul di koleksi jam. |
 | v2 | Percobaan pertama, preview hitam, belum berhasil. |
 
 ## 💜 Kredit & catatan
 
+- Font tanggal [Cascadia Mono](https://github.com/microsoft/cascadia-code)
+  menggunakan lisensi SIL OFL 1.1, disertakan di
+  [`assets/fonts/LICENSE-CascadiaMono.txt`](assets/fonts/LICENSE-CascadiaMono.txt).
 - Font [Montserrat](https://fonts.google.com/specimen/Montserrat) dan
   [Inter](https://fonts.google.com/specimen/Inter) dari Google Fonts (lisensi
   OFL).
