@@ -51,20 +51,19 @@ class WatchfaceV5Tests(unittest.TestCase):
                          Image.open(ROOT / 'build/telu/preview.png')
                          .convert('RGBA').tobytes())
 
-    def test_time_digit_sets_are_white_and_red(self):
+    def test_hour_and_minute_digit_sets_are_white(self):
         hms = self.named['Time']['Digital']['HoursMinutesSeconds']
-        for entry, expect_red in ((hms[0], False), (hms[1], True)):
+        for entry in hms:
             rng = entry['Text']['Image']['ImageRange']['ImageRange']
             for i in range(10):
                 blob = self.images[rng['ImageIndex'] + i - 1]
                 w, h, px = decode_image(blob)
                 self.assertEqual((w, h), TIME_CELL)
-                reds = sum(1 for p in range(0, len(px), 4)
-                           if px[p] > 180 and px[p + 1] < 120)
-                if expect_red:
-                    self.assertGreater(reds, 40, i)
-                else:
-                    self.assertLess(reds, 10, i)
+                opaque = [tuple(px[p:p + 3]) for p in range(0, len(px), 4)
+                          if px[p + 3] > 200]
+                self.assertGreater(len(opaque), 40, i)
+                self.assertTrue(all(rgb == (255, 255, 255) for rgb in opaque),
+                                (entry['Type'], i))
 
     def test_today_month_and_weekday_ranges(self):
         ymd = {e['Type']: e for e in self.named['System']['Date']['YearMonthDay']}

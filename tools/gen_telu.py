@@ -7,7 +7,7 @@ v5/v5_preview-reference.png:
 - Latar hitam bersih dengan cincin dan dekorasi vektor. Hanya ilustrasi
   kampus di bawah yang diekstrak dari referensi.
 - Logo resmi Telkom University (Wikimedia Commons) dengan wordmark putih.
-- Waktu utama: jam putih + titik dua & menit merah (dua set digit).
+- Waktu utama: angka jam dan menit putih, dengan titik dua merah.
 - Tanggal "Fri, 12 Sep": satu font monospace dan baris yang terpusat.
 - Empat gauge melingkar: STEPS, BPM, POWER, KCAL (busur CircleScale).
 - Modul solar dinamis "SUNRISE/SUNSET terdekat" (data Sunrise, tipe 12):
@@ -606,8 +606,8 @@ def main():
         img = render_text(txt, font(F_MS, 11 * SS), GRAY_LABEL, tracking=1.0)
         save(img, f"badge {txt}")
 
-    # Waktu: digit putih (jam) & merah (menit).
-    for fill in (WHITE, RED):
+    # Waktu: kedua set digit putih untuk jam dan menit.
+    for fill in (WHITE, WHITE):
         for dch in "0123456789":
             save(make_digit(dch, TIME_CELL[0], TIME_CELL[1], F_INTER, 96,
                             fill=fill, variation="Black", stretch=0.71),
@@ -665,7 +665,7 @@ def main():
     I_AOD = 1
     I_LOGO = 2
     I_AM, I_PM = 3, 4
-    I_TIME_W, I_TIME_R = 5, 15
+    I_TIME_H, I_TIME_M = 5, 15
     I_METRIC = 25
     I_SOLAR_D = 35
     I_WEATHER_D = 45
@@ -687,9 +687,9 @@ def main():
     time_digital = {
         "HoursMinutesSeconds": [
             {"Type": 0, "Independent": True,
-             "Text": number_text(HOUR_X, TIME_Y, I_TIME_W, 10, zeropad=1)},
+             "Text": number_text(HOUR_X, TIME_Y, I_TIME_H, 10, zeropad=1)},
             {"Type": 1, "Independent": True,
-             "Text": number_text(MINUTE_X, TIME_Y, I_TIME_R, 10, zeropad=1)},
+             "Text": number_text(MINUTE_X, TIME_Y, I_TIME_M, 10, zeropad=1)},
         ],
         "AM": {"Coordinates": {"X": AMPM_XY[0], "Y": AMPM_XY[1]},
                "ImageRange": {"Language": 2,
