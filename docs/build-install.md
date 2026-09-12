@@ -1,49 +1,48 @@
 # Build & Instalasi — TEL-U Watchface (T-Rex Pro)
 
-## Tahap Saat Ini
+## Status: SIAP IMPORT
 
-Repo ini berisi **design kit lengkap**: tema warna TEL-U, layout 360×360,
-asset PNG (background, branding, AM/PM, digit 0–9), dan mockup preview.
-Mockup `assets/preview/preview_360.png` menampilkan hasil akhir yang dituju.
+File **`out/telu_trex_pro.bin`** adalah watchface jadi untuk Amazfit T-Rex Pro
+(360×360, format UIHH_GT2). Terverifikasi: parse balik 43 gambar + parameter
+identik dengan desain, dan mockup dirender ulang dari isi `.bin` itu sendiri
+(lihat `assets/preview/frombin_360.png`).
 
-## Cara Menjadikan .bin di T-Rex Pro
+## Build Ulang (satu perintah)
 
-Karena T-Rex Pro adalah perangkat **non-Zepp OS**, build dilakukan lewat editor
-komunitas yang mendukung model T-Rex Pro (360×360):
+Butuh Python + Pillow saja, tanpa tool lain:
 
-### Opsi A — Amazfit Watchface Editor (Android, paling mudah)
-1. Install dari Play Store: *Amazfit Watchface Editor* (paolo4c).
-2. Pilih model **T-Rex Pro**.
-3. Buat layout kosong, lalu import/letakkan asset dari `assets/360x360/`:
-   - `bg.png` → background full
-   - `digits/0..9.png` → digit jam besar (posisi lihat `design/LAYOUT.md`)
-   - `ampm.png` → penanda AM/PM
-   - `branding.png` → ornamen bawah
-4. Tambahkan data fields: KCAL, STEP, HR, baterai, tanggal (warna: merah
-   `#ED1E28`, marun `#B6252A`, abu `#959597` — lihat `design/telu-theme.md`).
-5. Export → `.bin` + preview.
+```powershell
+python tools/build_all.py
+```
 
-### Opsi B — SashaCX75 AmazFit Watchface Editor (Windows)
-1. Download dari GitHub: SashaCX75/AmazFit_Watchface_Editor (releases).
-2. Pilih profil T-Rex (360×360).
-3. Rekonstruksi layout sesuai `design/LAYOUT.md` + `design/watchface.json`.
-4. Save/Export `.bin`.
+Alurnya: `tools/gen_telu.py` (gambar + `watchface.json`) → `tools/render_mockup.py`
+(mockup) → `tools/pack_watchface.py` (pack jadi `.bin` via `tools/trexpro_wf.py`)
+→ `tools/verify_bin.py` (verifikasi otomatis, gagal bila beda).
 
-### Opsi C — Biner legacy (manual)
-1. Ambil watch face bawaan T-Rex Pro yang mirip (mis. rigger), unpack dengan
-   tool packer/unpacker `.bin` komunitas.
-2. Timpa image + ubah koordinat sesuai `design/watchface.json`.
-3. Pack ulang → `telu_trex_pro.bin`.
+Packer `tools/trexpro_wf.py` mandiri (tanpa dependency selain Pillow untuk
+unpack ke PNG): format UIHH_GT2 di-reverse dari file asli katalog komunitas
+dan divalidasi round-trip byte-identik melawan implementasi referensi
+(watchface-js). Catatan format ada di `docs/research/format-uihh-gt2.md`.
 
 ## Instalasi ke Jam
 
 1. **Zepp App** → Profile → Settings → About → tap logo Zepp 5–7×
    → "Developer mode activated".
 2. Profile → device **T-Rex Pro** → Developer → Watch Face → **+**.
-3. Scan QR (dari editor Android) **atau** pilih file `.bin` hasil export.
-4. Sync ke jam → pilih watch face TEL-U di jam.
+3. Pilih file **`out/telu_trex_pro.bin`** hasil build.
+4. Sync ke jam → pilih watchface TEL-U di jam.
 
 ## Catatan Preview Katalog
 
-Preview untuk katalog Zepp: **220×220** — sudah disediakan di
-`assets/preview/preview_220.png`.
+Preview untuk katalog Zepp: **220×220** — tertanam di dalam `.bin` sebagai
+gambar terakhir (index 42), dibuat dari `build/mockup_220.png`.
+
+## Konvensi yang Dipakai Desain Ini (hasil riset file asli)
+
+- Weekday 7 gambar berurutan **TUE..MON** (teramati pada 3 file T-Rex Pro asli
+  dari 2 author berbeda; firmware menampilkan index 0 saat Selasa).
+- `stored count` = jumlah gambar + 1 (quirk packer umum, diikuti agar kompatibel).
+- Arc baterai: 0° = atas, searah jarum jam; dipakai simetris di bawah (135→225)
+  agar robust.
+- File ditulis **uncompressed** (byte 40 = 0xFF); jam dan parser referensi
+  sama-sama mendukungnya.

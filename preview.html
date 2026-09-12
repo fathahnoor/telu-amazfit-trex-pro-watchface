@@ -2,24 +2,31 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>TEL-U Watchface Preview</title>
+<title>TEL-U Watchface Preview (T-Rex Pro)</title>
 <style>
   body { background: #1a1a1a; color: #eee; font-family: sans-serif; display: flex; gap: 40px; padding: 40px; align-items: flex-start; }
-  .watch { border-radius: 50%; overflow: hidden; box-shadow: 0 0 40px rgba(237,30,40,.3); }
-  .watch img { display: block; width: 480px; height: 480px; image-rendering: pixelated; }
-  .info { max-width: 420px; }
+  .watch { border-radius: 50%; overflow: hidden; box-shadow: 0 0 40px rgba(237,30,40,.3); flex-shrink: 0; }
+  .watch img { display: block; width: 420px; height: 420px; }
+  .info { max-width: 460px; }
   .info img { max-width: 100%; margin: 8px 0; border: 1px solid #333; background: #000; }
   h1 { font-size: 20px; } .red { color: #ED1E28; }
+  .row { display: flex; gap: 12px; } .row img { width: 48%; }
 </style>
 </head>
 <body>
   <div class="watch"><img src="assets/preview/preview_360.png" alt="preview 360"></div>
   <div class="info">
-    <h1>TEL-U Watchface <span class="red">— mockup 360×360</span></h1>
-    <p>bg.png</p><img src="assets/360x360/bg.png" width="180">
-    <p>branding.png &nbsp; ampm.png</p>
-    <img src="assets/360x360/branding.png" style="width:auto">
-    <img src="assets/360x360/ampm.png" style="width:auto">
+    <h1>TEL-U Watchface <span class="red">— T-Rex Pro 360×360</span></h1>
+    <p>Hasil akhir: <b>out/telu_trex_pro.bin</b> (siap import via Zepp App Developer Mode).
+       Mockup dirender dari <b>isi .bin itu sendiri</b> (parse balik + gambar ulang).</p>
+    <p>Uji kasus tepi (12:59 PM / 5 digit langkah / baterai 100%) dan render dari .bin:</p>
+    <div class="row">
+      <img src="assets/preview/edge_1259.png" alt="edge 12:59">
+      <img src="assets/preview/edge_0007.png" alt="edge 00:07">
+    </div>
+    <p>Render langsung dari <b>out/telu_trex_pro.bin</b> (bukti end-to-end):</p>
+    <img src="assets/preview/frombin_360.png" alt="render dari bin" width="220">
+    <p>Background (bg):</p><img src="assets/360x360/bg.png" width="220">
   </div>
 </body>
 </html>

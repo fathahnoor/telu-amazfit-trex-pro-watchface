@@ -15,3 +15,6 @@ Thumbs.db
 
 # Node (jika suatu saat perlu toolchain node)
 node_modules/
+
+# State pelaporan WA (runtime, jangan commit)
+.whatsapp-report.json

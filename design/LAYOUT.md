@@ -1,49 +1,39 @@
-# TEL-U Watchface — Layout Spec (360 × 360)
+# TEL-U Watchface — Layout Final (360 × 360, UIHH_GT2)
 
-Tiruan watch face "rigger" digital dengan tema Telkom University.
-Semua koordinat dalam px, origin kiri-atas, layar **360×360**.
+Desain "rigger modern": jam besar kanan (HH/MM susun vertikal), kolom data kiri
+(KCAL/STEP/HR), strip status atas (baterai + tanggal + AM/PM), arc baterai
+bawah, branding TELKOM UNIVERSITY bawah. Sumber: `tools/gen_telu.py`.
 
-## Zona
+## Peta Indeks Gambar (43 total, preview = 42)
 
-```
-(0,0)
-  ┌────────────────────────────────────┐
-  │            [zona jam kecil]        │  y: 8–40
-  │  [kolom kiri]   [zona jam besar]   │  x kiri: 8–150 ; x kanan: 150–352
-  │                 [penanda AM/PM]    │  y: 150–210
-  │  [arc progress]                    │  ring radius ~170
-  │           [branding TEL-U]         │  y: 330–352
-  └────────────────────────────────────┘
-```
+| Indeks | Isi | Ukuran |
+|---|---|---|
+| 0 | Background (hitam, ring marun, tick, label+ikon kolom kiri, branding) | 360×360 |
+| 1 | Badge AM (merah, teks putih) | 46×28 |
+| 2 | Badge PM | 46×28 |
+| 3–12 | Digit besar 0–9 (putih, Arial Black) | 76×100 |
+| 13–22 | Digit kecil 0–9 (putih, nilai KCAL/STEP/HR) | 26×36 |
+| 23–32 | Digit medium 0–9 (putih, baterai % + tanggal) | 18×24 |
+| 33 | No-data `--` | 24×14 |
+| 34 | `%` (suffix baterai) | 18×13 |
+| 35–41 | Weekday TUE WED THU FRI SAT SUN MON (merah) | ~45×12 |
+| 42 | Preview 220×220 (katalog) | 220×220 |
 
-## Elemen
+## Posisi Elemen (origin kiri-atas)
 
-| # | Elemen | Type | Posisi (x, y) | Ukuran | Warna | Catatan |
-|---|---|---|---|---|---|---|
-| 1 | Background | IMG | 0, 0 | 360×360 | hitam + ornamen | `bg.png` |
-| 2 | Ring ornamen marun | IMG (di bg) | pusat 180,180 | r=170 | `#B6252A` | tipis, alpha rendah |
-| 3 | Arc progress baterai | ARC | center 180,180, r=158, 135°→45° (kiri) | lw=6 | `#ED1E28` | level = baterai |
-| 4 | Jam kecil (HH:MM) | TEXT | 196, 12 | w=150 h=28 | putih | format 12h, prefix ikon aktivitas |
-| 5 | Label KCAL | TEXT | 16, 48 | w=110 h=24 | `#959597` | |
-| 6 | Nilai KCAL | TEXT | 16, 74 | w=110 h=32 | putih | |
-| 7 | Separator 1 | IMG/line | 16, 112 | w=110 h=2 | `#55565B` | |
-| 8 | Label STEP | TEXT | 16, 122 | w=110 h=24 | `#ED1E28` | |
-| 9 | Nilai STEP | TEXT | 16, 148 | w=110 h=32 | putih | |
-| 10 | Separator 2 | IMG/line | 16, 186 | w=110 h=2 | `#55565B` | |
-| 11 | Label HR | TEXT | 16, 196 | w=110 h=24 | `#ED1E28` | |
-| 12 | Nilai HR | TEXT | 16, 222 | w=110 h=32 | putih | + ikon petir kecil utk baterai % |
-| 13 | Jam besar HH | TEXT_IMG | 172, 96 | tinggi 72 | putih | font tebal, right-align di 268 |
-| 14 | Jam besar MM | TEXT_IMG | 172, 180 | tinggi 72 | putih | |
-| 15 | Penanda AM/PM | IMG | 268, 168 | 36×28 | `#ED1E28` | segitiga + teks |
-| 16 | Tanggal (SAB 12) | TEXT | 172, 268 | w=150 h=26 | `#ED1E28` | hari merah, tanggal putih |
-| 17 | Branding TEL-U | IMG | pusat, y=330 | ~140×20 | putih + merah | teks "TELKOM UNIVERSITY" |
+| Elemen | Posisi | Catatan |
+|---|---|---|
+| Baterai % | (42, 26), Left | digit medium + suffix `%` |
+| Tanggal: weekday | (180, 32), Left | 7 gambar TUE..MON |
+| Tanggal: hari | (224, 30), Left | digit medium, zero-pad 2 |
+| AM / PM | (288, 30) | badge, salah satu tampil ikut format jam |
+| Jam HH | (332, 80), Right | digit besar, zero-pad 2 |
+| Jam MM | (332, 186), Right | digit besar |
+| KCAL | (16, 86), Left | digit kecil |
+| STEP | (16, 168), Left | digit kecil, muat 5 digit |
+| HR | (16, 250), Left | digit kecil |
+| Arc baterai | center (180,180) r=160, 135°→225° | merah `#ED1E28`, lebar 7, ujung flat; 0° = atas searah jarum jam |
+| IdleScreen | jam Center (180, 96/202), weekday Center (180, 312), arc baterai | AOD minimal, bg sama |
 
-## Font
-
-- Jam besar: font tebal internal editor (atau digit PNG custom 48-72px tinggi).
-- Label & angka kecil: font bawaan system (atau PNG 24px).
-
-## Catatan AMOLED
-
-- Background hitam murni `#000000` — piksel mati = hemat baterai.
-- Ornamen marun alpha 30-40% supaya tidak mengganggu keterbacaan.
+Label/ikon kolom kiri, separator, divider x=158, dan branding dibakar ke
+background (statis). Nilai 5-digit (langkah) sudah diuji muat sebelum divider.

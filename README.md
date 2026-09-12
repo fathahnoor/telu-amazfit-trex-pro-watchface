@@ -4,7 +4,8 @@ Watch face **Amazfit T-Rex Pro** bertema **Telkom University (TEL-U)** — tirua
 watch face rigger digital (jam besar di kanan, kolom KCAL/STEP/HR di kiri, arc progress),
 dengan ornamen & palet warna resmi Telkom University.
 
-> 🚧 **Status: ON PROGRESS — Dikembangkan bertahap, commit kecil per bagian.**
+> ✅ **Status: SELESAI — `out/telu_trex_pro.bin` siap import ke jam.**
+> Build satu perintah (`python tools/build_all.py`), terverifikasi parse balik.
 
 ---
 
@@ -78,22 +79,32 @@ dengan ornamen & palet warna resmi Telkom University.
 ```
 telu-amazfit-trex-pro-watchface/
 ├── README.md                    <- file ini
-├── preview.html                 <- halaman inspeksi visual (butuh server statis)
+├── preview.html                 <- halaman inspeksi visual (buka langsung)
+├── out/
+│   └── telu_trex_pro.bin        <- WATCHFACE JADI, siap import ke jam
 ├── design/
 │   ├── telu-theme.md            <- aturan tema warna + ornamen TEL-U
-│   ├── LAYOUT.md                <- spesifikasi layout per elemen (koordinat 360x360)
-│   └── watchface.json           <- layout machine-readable
+│   ├── LAYOUT.md                <- spesifikasi layout final + peta indeks gambar
+│   └── watchface.json           <- layout machine-readable (lama, lihat build/)
+├── build/                       <- output pipeline (gitignored, reproducible)
+│   └── telu/                    <- PNG bernomor 0..41 + preview.png + watchface.json
 ├── assets/
-│   ├── 360x360/                 <- PNG per elemen (bg, branding, ampm, digits/)
-│   └── preview/                 <- mockup preview 360 & 220
+│   ├── 360x360/                 <- bg final + arsip skema lama
+│   └── preview/                 <- mockup final + render dari .bin
 ├── tools/
-│   ├── gen_assets.py            <- generator background/branding/ampm + mockup
-│   ├── gen_digits.py            <- generator digit 0-9 (72px)
-│   └── serve_preview.py         <- server statis kecil utk preview.html
+│   ├── build_all.py             <- SATU perintah build penuh + verifikasi
+│   ├── gen_telu.py              <- generator desain (gambar + watchface.json)
+│   ├── render_mockup.py         <- render mockup dari folder build / dari .bin
+│   ├── pack_watchface.py        <- pack folder build jadi .bin
+│   ├── trexpro_wf.py            <- packer/unpacker mandiri format UIHH_GT2
+│   ├── verify_bin.py            <- verifikasi .bin vs sumber desain
+│   ├── LICENSE.watchface-js    <- atribusi skema/format (GPL-3.0)
+│   ├── gen_assets.py            <- generator lama (arsip)
+│   └── gen_digits.py            <- generator lama (arsip)
 └── docs/
-    ├── build-install.md         <- cara jadi .bin + instalasi
+    ├── build-install.md         <- cara build + instalasi ke jam
     ├── guide/                   <- panduan lama (referensi)
-    └── research/                <- hasil riset (device list, warna, editor)
+    └── research/                <- hasil riset (device, warna, editor, format .bin)
 ```
 
 ---
@@ -108,16 +119,24 @@ telu-amazfit-trex-pro-watchface/
 - [x] Asset hasil generate: bg, branding, ampm, digit 0–9, preview mockup
 - [x] `design/watchface.json` (layout machine-readable)
 - [x] Panduan build `.bin` via editor komunitas (`docs/build-install.md`)
-- [ ] Packer `.bin` mandiri (perlu sampel .bin asli utk reverse-engineering)
-- [ ] Foto hasil di jam (verifikasi final)
+- [x] Packer `.bin` mandiri (`tools/trexpro_wf.py`, format UIHH_GT2 tereverse
+      dari 4 file asli + validasi round-trip melawan implementasi referensi)
+- [x] Watchface jadi `out/telu_trex_pro.bin` (43 gambar, preview 220×220)
+- [x] Verifikasi visual: mockup + uji tepi + render ulang dari isi `.bin`
+- [ ] Foto hasil di jam (verifikasi final oleh pemilik jam)
 
 ---
 
-## Instalasi (Nanti, Setelah Build Berhasil)
+## Instalasi
+
+File jadi: **`out/telu_trex_pro.bin`** (823 KB, 43 gambar, preview 220×220).
 
 1. Aktifkan Developer Mode di Zepp App (tap logo Zepp 5-7x di About)
 2. Device → T-Rex Pro → Developer → Watch Face → +
-3. Scan QR / pilih file `.bin` hasil build
+3. Pilih file `out/telu_trex_pro.bin` → sync ke jam
+
+Build ulang dari nol (butuh Python + Pillow): `python tools/build_all.py`.
+Detil: `docs/build-install.md`.
 
 ---
 
