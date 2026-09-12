@@ -4,9 +4,8 @@
 Revisi besar mengikuti v5/telkom_trex_pro_watchface_spec.md dan
 v5/v5_preview-reference.png:
 
-- Latar diekstrak dari referensi yang disetujui (frame luar, sudut kampus,
-  cincin gauge, garis pemisah) lalu ditambal bersih; elemen dinamis menjadi
-  aset firmware terpisah.
+- Latar hitam bersih dengan cincin dan dekorasi vektor. Hanya ilustrasi
+  kampus di bawah yang diekstrak dari referensi.
 - Logo resmi Telkom University (Wikimedia Commons) dengan wordmark putih.
 - Waktu utama: jam putih + titik dua & menit merah (dua set digit).
 - Tanggal "Friday, 12 Sep": 7 nama hari + 12 gambar bulan.
@@ -24,7 +23,7 @@ import json
 import math
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 W = H = 360
 CX = CY = 180
@@ -57,24 +56,24 @@ F_MM = str(FONTS / "Montserrat-Medium.ttf")
 SS = 4  # supersampling teks/angka
 
 # ---------------------------------------------------------------------------
-# Geometri gauge (diukur dari referensi)
+# Geometri gauge, dengan ruang terpisah untuk waktu dan angka maksimum
 # ---------------------------------------------------------------------------
 GAUGES = {
-    "steps": dict(cx=66, cy=156, r=44, icon_cy=138, value_cy=163, label_cy=179),
-    "bpm": dict(cx=283, cy=161, r=45, icon_cy=110, value_cy=160, label_cy=178),
-    "power": dict(cx=80, cy=236, r=35, icon_cy=220, value_cy=246, label_cy=268),
-    "kcal": dict(cx=288, cy=242, r=43, icon_cy=224, value_cy=246, label_cy=267),
+    "steps": dict(cx=60, cy=158, r=37, icon_cy=138, value_cy=163, label_cy=183),
+    "bpm": dict(cx=300, cy=158, r=37, icon_cy=138, value_cy=163, label_cy=183),
+    "power": dict(cx=90, cy=239, r=36, icon_cy=221, value_cy=243, label_cy=262),
+    "kcal": dict(cx=270, cy=239, r=36, icon_cy=219, value_cy=243, label_cy=262),
 }
 
 # Waktu utama
-TIME_Y = 141
-TIME_CELL = (40, 56)
-HOUR_X = 93
-MINUTE_X = 187            # 93 + 2*40 + 14 (titik dua) = 187
-COLON_DOTS = [(176, 155, 185, 166), (176, 180, 185, 191)]
+TIME_Y = 143
+TIME_CELL = (34, 52)
+HOUR_X = 105
+MINUTE_X = 187
+COLON_DOTS = [(176, 157, 183, 164), (176, 177, 183, 184)]
 
 # Tanggal
-DATE_Y = 113
+DATE_Y = 116
 
 # Nilai metrik (sel + lebar maksimum untuk menghitung X rata tengah)
 METRIC_CELL = (10, 17)
@@ -82,38 +81,26 @@ WEATHER_CELL = (11, 16)
 SOLAR_CELL = (9, 12)
 
 # Modul solar
-SOLAR_ICON_XY = (146, 212)
-SOLAR_ICON_SIZE = (68, 56)
+SOLAR_ICON_XY = (146, 218)
+SOLAR_ICON_SIZE = (68, 52)
 SOLAR_LABEL_Y = 43
-VALUE_SOLAR_CY = 244
+VALUE_SOLAR_CY = 250
 
 # Modul cuaca
-WEATHER_BANNER_XY = (232, 47)
-WEATHER_BANNER_SIZE = (96, 50)
-WEATHER_LABEL_Y = 37
-WEATHER_LABEL_CX = 58       # lokal
-WEATHER_ICON_LOCAL = (9, 8)
-VALUE_TEMP = (268, 64)
+WEATHER_BANNER_XY = (245, 61)
+WEATHER_BANNER_SIZE = (76, 43)
+WEATHER_LABEL_Y = 31
+WEATHER_LABEL_CX = 35
+WEATHER_ICON_LOCAL = (0, 4)
+VALUE_TEMP = (271, 68)
 
 # AM/PM
-AMPM_XY = (158, 199)
+AMPM_XY = (168, 202)
 
 # AOD
 AOD_TIME_Y = 152
 AOD_DATE_Y = 240
 AOD_BATTERY_Y = 288
-
-# Area dinamis yang dihapus dari referensi
-PATCH_COLOR = (7, 5, 4)
-PATCHES = [
-    (136, 3, 226, 105),     # logo
-    (236, 44, 316, 116),    # modul cuaca
-    (140, 210, 222, 272),   # modul solar
-    (94, 131, 300, 215),    # blok waktu penuh (titik dua digambar ulang)
-    (118, 109, 250, 133),   # tanggal
-    (152, 198, 212, 220),   # teks AM/PM
-]
-
 
 # ---------------------------------------------------------------------------
 # Util gambar
@@ -206,22 +193,13 @@ def svg_icon(path, width, fill=None):
     """Raster akar SVG (MDI) lalu pewarnaan ulang opsional."""
     from svglib.svglib import svg2rlg
     from reportlab.graphics import renderPM
-    cache = ROOT / "build" / (Path(path).stem + ".png")
-    if not cache.exists():
-        drawing = svg2rlg(str(path))
-        renderPM.drawToFile(drawing, str(cache), fmt="PNG", dpi=600)
-    img = Image.open(cache).convert("RGBA")
-    px = img.load()
-    for y in range(img.height):
-        for x in range(img.width):
-            r, g, b, al = px[x, y]
-            if fill and al > 30:
-                # Semua piksel ber-tinta jadi warna target; simpan alpha.
-                px[x, y] = fill + (al,)
-            elif al > 30 and (r + g + b) < 500:
-                px[x, y] = (255, 255, 255, al)
-            else:
-                px[x, y] = (0, 0, 0, 0)
+    # renderPM menghasilkan RGB berlatar putih. Ambil mask tinta dahulu,
+    # baru beri warna, agar latar putih tidak menjadi persegi merah.
+    drawing = svg2rlg(str(path))
+    raster = renderPM.drawToPIL(drawing, dpi=600, bg=0xFFFFFF)
+    mask = ImageOps.invert(raster.convert("L"))
+    img = Image.new("RGBA", raster.size, (fill or WHITE) + (255,))
+    img.putalpha(mask)
     box = img.getbbox()
     if box:
         img = img.crop(box)
@@ -403,9 +381,9 @@ def make_weather_banners():
     fnt = font(F_MS, 7 * SS)
     for label, tokens in CONDITIONS:
         img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        img.alpha_composite(render_weather_icon(tokens, size=30),
+        img.alpha_composite(render_weather_icon(tokens, size=23),
                             WEATHER_ICON_LOCAL)
-        txt = render_text(label, fnt, GRAY_LABEL, tracking=1.2)
+        txt = render_text(label, fnt, GRAY_LABEL, tracking=0.3)
         img.alpha_composite(txt, (WEATHER_LABEL_CX - txt.width // 2,
                                   WEATHER_LABEL_Y))
         banners.append(img)
@@ -418,8 +396,8 @@ def make_solar_banners():
     fnt = font(F_MS, 8 * SS)
     for kind, label in (("sunrise", "SUNRISE"), ("sunset", "SUNSET")):
         img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        ic = icon_solar(kind, w=44, h=20)
-        img.alpha_composite(ic, ((w - ic.width) // 2, 3))
+        ic = icon_solar(kind, w=44, h=20).resize((34, 23), Image.LANCZOS)
+        img.alpha_composite(ic, ((w - ic.width) // 2, 0))
         txt = render_text(label, fnt, GRAY_LABEL, tracking=1.2)
         img.alpha_composite(txt, ((w - txt.width) // 2, SOLAR_LABEL_Y))
         out.append(img)
@@ -437,12 +415,12 @@ DAYS_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
 
 def make_month_images():
-    fnt = font(F_MB, 15 * SS)
+    fnt = font(F_MB, 13 * SS)
     return [render_text(m, fnt, WHITE_SOFT, tracking=0.4) for m in MONTHS]
 
 
 def make_weekday_images():
-    fnt = font(F_MB, 15 * SS)
+    fnt = font(F_MB, 13 * SS)
     rendered = [render_text(d + ",", fnt, WHITE, tracking=0.4)
                 for d in DAYS_FULL]
     cell_w = max(r.width for r in rendered) + 4
@@ -471,72 +449,61 @@ def make_cell_image(text, font_path, size, fill, cell_h=24, baseline=21,
 
 
 # ---------------------------------------------------------------------------
-# Latar: ekstraksi + tambalan + elemen statis
+# Latar bersih dan elemen statis
 # ---------------------------------------------------------------------------
 
 def build_background():
-    bg = Image.open(REFERENCE).convert("RGB").resize((W, H), Image.LANCZOS)
-    d = ImageDraw.Draw(bg)
-    for (x0, y0, x1, y1) in PATCHES:
-        d.rectangle([x0, y0, x1, y1], fill=PATCH_COLOR)
+    # Hanya ilustrasi kampus diambil dari referensi. Semua area data dibuat
+    # dari kanvas bersih sehingga angka, cincin, dan tambalan lama tidak ikut.
+    bg = Image.new("RGBA", (W, H), BLACK + (255,))
+    reference = Image.open(REFERENCE).convert("RGBA").resize((W, H), Image.LANCZOS)
+    campus = reference.crop((35, 278, 325, 341))
+    mask = Image.new("L", campus.size, 0)
+    md = ImageDraw.Draw(mask)
+    for y in range(campus.height):
+        md.line((0, y, campus.width, y), fill=min(255, y * 32))
+    campus.putalpha(mask)
+    bg.alpha_composite(campus, (35, 278))
 
-    # Bersihkan busur merah pada cincin; isi ulang pita cincin / hitam.
-    px = bg.load()
+    # Dekorasi vektor pada resolusi tinggi, konsisten dengan posisi gauge.
+    layer = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+
+    def ellipse(box, **kwargs):
+        d.ellipse(tuple(round(v * SS) for v in box), **kwargs)
+
+    ellipse((8, 8, 352, 352), outline=GRAY_RIM, width=SS)
+    for start, end in ((-140, -116), (-64, -40), (63, 76), (104, 117)):
+        d.arc((10 * SS, 10 * SS, 350 * SS, 350 * SS),
+              start, end, fill=RED, width=3 * SS)
     for g in GAUGES.values():
         cx, cy, r = g["cx"], g["cy"], g["r"]
-        for y in range(max(0, int(cy - 62)), min(H, int(cy + 62))):
-            for x in range(max(0, int(cx - 62)), min(W, int(cx + 62))):
-                pr, pg, pb = px[x, y]
-                if pr > pg + 18 and pr > pb + 18 and pr > 60:
-                    dist = math.hypot(x - cx, y - cy)
-                    if abs(dist - r) <= 6.5:
-                        px[x, y] = GRAY_RING
-                    elif dist < 62:
-                        px[x, y] = BLACK
-        # Interior gauge: hitam bersih untuk ikon/nilai baru.
-        d.ellipse([cx - (r - 3.5), cy - (r - 3.5),
-                   cx + (r - 3.5), cy + (r - 3.5)], fill=BLACK)
-
-    # Rim tipis.
-    d.ellipse([CX - 171, CY - 171, CX + 171, CY + 171],
-              outline=(70, 70, 74, 255), width=2)
-    # Cincin dasar gauge.
-    for g in GAUGES.values():
-        d.ellipse([g["cx"] - g["r"], g["cy"] - g["r"],
-                   g["cx"] + g["r"], g["cy"] + g["r"]],
-                  outline=GRAY_RING + (255,), width=7)
-    # Titik dua waktu (merah).
+        ellipse((cx-r, cy-r, cx+r, cy+r), outline=GRAY_RING, width=5 * SS)
     for box in COLON_DOTS:
-        d.rounded_rectangle(box, radius=3, fill=RED + (255,))
-    # Garis pemisah AM/PM.
-    d.line([110, 210, 168, 210], fill=(120, 120, 124, 255), width=2)
-    d.line([192, 210, 250, 210], fill=(120, 120, 124, 255), width=2)
-    # Aksen merah modul cuaca.
-    d.rounded_rectangle([296, 98, 332, 101], radius=2, fill=RED + (255,))
+        d.rounded_rectangle(tuple(v * SS for v in box), radius=2 * SS, fill=RED)
+    for x0, x1 in ((110, 158), (201, 250)):
+        d.line((x0 * SS, 207 * SS, x1 * SS, 207 * SS), fill=GRAY_RING, width=SS)
+    bg.alpha_composite(layer.resize((W, H), Image.LANCZOS))
 
-    bg = bg.convert("RGBA")
-    # Ikon + label statis tiap gauge.
-    shoe = svg_icon(ROOT / "assets" / "shoe-sneaker.svg", 32)
-    heart = svg_icon(ROOT / "assets" / "heart.svg", 30, fill=HEART)
-    flame = svg_icon(ROOT / "assets" / "fire.svg", 30, fill=RED)
-    battery = icon_battery(38, 20)
-    g = GAUGES
-    bg.alpha_composite(shoe, (g["steps"]["cx"] - shoe.width // 2,
-                              g["steps"]["icon_cy"] - shoe.height // 2))
-    bg.alpha_composite(heart, (g["bpm"]["cx"] - heart.width // 2,
-                               g["bpm"]["icon_cy"] - heart.height // 2))
-    bg.alpha_composite(battery, (g["power"]["cx"] - battery.width // 2,
-                                 g["power"]["icon_cy"] - battery.height // 2))
-    bg.alpha_composite(flame, (g["kcal"]["cx"] - flame.width // 2,
-                               g["kcal"]["icon_cy"] - flame.height // 2))
-
-    label_fnt = font(F_MM, 7 * SS)
+    for row, text in enumerate(("HARMONY", "EXCELLENCE", "INTEGRITY")):
+        label = render_text(text, font(F_MM, 6 * SS), GRAY_LABEL, tracking=1.0)
+        bg.alpha_composite(label, (80 - label.width // 2, 65 + row * 11))
+    icons = {
+        "steps": svg_icon(ROOT / "assets" / "shoe-sneaker.svg", 24),
+        "bpm": svg_icon(ROOT / "assets" / "heart.svg", 22, fill=HEART),
+        "kcal": svg_icon(ROOT / "assets" / "fire.svg", 15, fill=RED),
+        "power": icon_battery().resize((28, 19), Image.LANCZOS),
+    }
+    for name, ic in icons.items():
+        g = GAUGES[name]
+        bg.alpha_composite(ic, (g["cx"] - ic.width // 2,
+                                g["icon_cy"] - ic.height // 2))
     for name, text in (("steps", "STEPS"), ("bpm", "BPM"),
                        ("power", "POWER"), ("kcal", "KCAL")):
         g = GAUGES[name]
-        img = render_text(text, label_fnt, GRAY_LABEL, tracking=1.8)
-        bg.alpha_composite(img, (g["cx"] - img.width // 2,
-                                 g["label_cy"] - img.height // 2))
+        label = render_text(text, font(F_MM, 7 * SS), GRAY_LABEL, tracking=1.2)
+        bg.alpha_composite(label, (g["cx"] - label.width // 2,
+                                   g["label_cy"] - label.height // 2))
     return bg
 
 
@@ -551,7 +518,7 @@ def logo_image():
             if al > 0 and max(r, g, b) < 150:
                 v = 245 if y < int(logo.height * 0.86) else 225
                 px[x, y] = (v, v, v, al)
-    target_w = 78
+    target_w = 74
     ratio = target_w / logo.width
     return logo.resize((target_w, int(logo.height * ratio)), Image.LANCZOS)
 
@@ -575,7 +542,9 @@ def build_aod_background():
     aod.alpha_composite(u_only, (CX - 15, 58))
     d = ImageDraw.Draw(aod)
     for box in COLON_DOTS:
-        d.rounded_rectangle(box, radius=3, fill=RED + (255,))
+        d.rounded_rectangle((box[0], box[1] + AOD_TIME_Y - TIME_Y,
+                             box[2], box[3] + AOD_TIME_Y - TIME_Y),
+                            radius=3, fill=RED + (255,))
     return aod
 
 
@@ -583,10 +552,10 @@ def build_aod_background():
 # Parameter
 # ---------------------------------------------------------------------------
 
-def gauge_circle_scale(g, color="0xFFFF2029", width=7):
+def gauge_circle_scale(g, color="0xFFFF2029", width=5):
     return {
-        "Angle": {"X": g["cx"], "Y": g["cy"], "StartAngle": 0.0,
-                  "EndAngle": 360.0, "Radius": float(g["r"])},
+        "Angle": {"X": g["cx"], "Y": g["cy"], "StartAngle": 220.0,
+                  "EndAngle": 500.0, "Radius": float(g["r"])},
         "Color": color, "Width": width, "Flatness": 180,
     }
 
@@ -623,14 +592,14 @@ def main():
         state["i"] += 1
 
     bg = build_background()
-    bg.alpha_composite(logo_image(), (142, 7))
+    bg.alpha_composite(logo_image(), (143, 17))
     save(bg, "background")
     save(build_aod_background(), "background AOD")
     save(logo_image(), "logo (cadangan)")
 
     # AM / PM
     for txt in ("AM", "PM"):
-        img = render_text(txt, font(F_MS, 15 * SS), GRAY_LABEL, tracking=1.6)
+        img = render_text(txt, font(F_MS, 11 * SS), GRAY_LABEL, tracking=1.0)
         save(img, f"badge {txt}")
 
     # Waktu: digit putih (jam) & merah (menit).
@@ -741,7 +710,7 @@ def main():
     date_system = {
         "YearMonthDay": [
             {"Type": 2, "Independent": True,
-             "Text": number_text(day_x, DATE_Y - 1, I_SOLAR_D, 10, zeropad=1)},
+             "Text": number_text(day_x, DATE_Y, I_SOLAR_D, 10, zeropad=1)},
             {"Type": 1, "Independent": True,
              "Text": number_text(month_x, DATE_Y, I_MONTH, 12, zeropad=0,
                                  unknown6=1)},
@@ -756,23 +725,26 @@ def main():
         return number_text(x, y, I_METRIC, 10, nodata=I_NODATA,
                            **(extra or {}))
 
+    percent_width = Image.open(OUT / f"{I_PCT}.png").width
+    comma_width = Image.open(OUT / f"{I_COMMA}.png").width
+
     data_system = [
         {"Type": "Battery",
          "CircleScale": gauge_circle_scale(GAUGES["power"]),
          "NumberSequence": {"Independent": True,
-                            "Text": value_text(GAUGES["power"]["cx"], 34,
+                            "Text": value_text(GAUGES["power"]["cx"], 30 + percent_width,
                                                GAUGES["power"]["value_cy"] - 8,
                                                {"suffix": I_PCT})}},
         {"Type": "Steps",
          "CircleScale": gauge_circle_scale(GAUGES["steps"]),
          "NumberSequence": {"Independent": True,
-                            "Text": value_text(GAUGES["steps"]["cx"], 44,
+                            "Text": value_text(GAUGES["steps"]["cx"], 50 + comma_width,
                                                GAUGES["steps"]["value_cy"] - 8,
                                                {"delimiter": I_COMMA})}},
         {"Type": "Calories",
          "CircleScale": gauge_circle_scale(GAUGES["kcal"]),
          "NumberSequence": {"Independent": True,
-                            "Text": value_text(GAUGES["kcal"]["cx"], 30,
+                            "Text": value_text(GAUGES["kcal"]["cx"], 40,
                                                GAUGES["kcal"]["value_cy"] - 8)}},
         {"Type": "HeartRate",
          "CircleScale": gauge_circle_scale(GAUGES["bpm"]),
@@ -834,7 +806,7 @@ def main():
         "Data": {"Type": "Battery",
                  "NumberSequence": {"Independent": True,
                                     "Text": number_text(
-                                        180 - (2 * METRIC_CELL[0] + 14) // 2,
+                                        180 - (3 * METRIC_CELL[0] + percent_width) // 2,
                                         AOD_BATTERY_Y, I_METRIC, 10,
                                         nodata=I_NODATA, suffix=I_PCT)}},
         "BackgroundImageIndex": I_AOD,
