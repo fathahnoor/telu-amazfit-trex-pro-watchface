@@ -24,31 +24,30 @@ unpack ke PNG): format UIHH_GT2 di-reverse dari file asli katalog komunitas
 dan divalidasi round-trip byte-identik melawan implementasi referensi
 (watchface-js). Catatan format ada di `docs/research/format-uihh-gt2.md`.
 
-## Instalasi ke Jam (via Scan QR)
+## Instalasi ke Jam
 
-Aplikasi Zepp versi sekarang tidak menyediakan pilih file langsung — instalasi
-lewat **Developer Mode → + → Scan** memakai QR berisi URL unduhan `.bin`:
+> Koreksi penting: Zepp App versi sekarang TIDAK bisa memasang `.bin` legacy
+> lewat Developer Mode → Scan. Menu Scan/Bridge di aplikasi adalah alur
+> dev-bridge **Zepp OS** (butuh JS runtime di jam); T-Rex Pro adalah RTOS
+> legacy sehingga QR URL biasa ditolak ("unrecognized QR code"). Pakai salah
+> satu jalur di bawah.
 
-1. Pastikan HP dan laptop tersambung ke **WiFi yang sama**.
-2. Di laptop, jalankan server file dari folder `out/` (sudah berisi `.bin`):
-   ```powershell
-   cd out
-   python -m http.server 8000
-   ```
-   Biarkan jendela ini terbuka selama instalasi.
-3. Buka gambar **`assets/qr_install.png`** di laptop (tampilkan penuh di layar).
-   QR ini mengarah ke `http://192.168.100.29:8000/telu_trex_pro.bin`
-   (sesuaikan IP bila WiFi berbeda, lalu generate ulang QR-nya).
-4. Di Zepp App: Developer Mode → **+** → **Scan** → scan QR di layar laptop.
-5. Tunggu unduhan selesai → pilih T-Rex Pro → sync ke jam → pilih
-   watchface TEL-U di jam.
+### Opsi A — Gadgetbridge (terverifikasi di source code)
 
-Catatan:
-- Bila scan gagal mengunduh (mis. aplikasi menolak `http`), alternatifnya:
-  push repo ini lalu buat QR dari URL raw GitHub
-  `https://raw.githubusercontent.com/fathahnoor/telu-amazfit-trex-pro-watchface/main/out/telu_trex_pro.bin`
-  (https, selalu bisa diunduh HP).
-- Matikan server (`Ctrl+C`) setelah selesai.
+Source Gadgetbridge (`AmazfitTRexProFirmwareInfo`) mengenali file berformat
+ini (`UIHH` + version 1/2) sebagai `WATCHFACE` untuk `AMAZFITTREXPRO`:
+
+1. Install Gadgetbridge (Android, F-Droid) dan pair-kan T-Rex Pro di sana.
+2. Salin `out/telu_trex_pro.bin` ke HP.
+3. Buka file `.bin` tersebut lewat Gadgetbridge (file manager → Open with →
+   Gadgetbridge) → konfirmasi instalasi watchface → sync ke jam.
+
+### Opsi B — AmazFaces (aplikasi komunitas)
+
+1. Install AmazFaces di HP dan salin `out/telu_trex_pro.bin` ke HP.
+2. Di AmazFaces: impor file `.bin` → pilih T-Rex Pro → install ke jam.
+3. (Katalog amazfitwatchfaces.com memang menyalurkan file `.bin` T-Rex Pro
+   lewat aplikasi ini.)
 
 ## Catatan Preview Katalog
 
