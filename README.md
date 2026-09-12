@@ -130,11 +130,12 @@ telu-amazfit-trex-pro-watchface/
 
 ## Instalasi
 
-File jadi: **`out/telu_trex_pro.bin`** (823 KB, 43 gambar, preview 220×220).
+File jadi: **`out/telu_trex_pro.bin`** (770 KB, 43 gambar, preview 220×220).
 
 1. Aktifkan Developer Mode di Zepp App (tap logo Zepp 5-7x di About)
-2. Device → T-Rex Pro → Developer → Watch Face → +
-3. Pilih file `out/telu_trex_pro.bin` → sync ke jam
+2. HP + laptop satu WiFi → di laptop: `cd out` lalu `python -m http.server 8000`
+3. Buka `assets/qr_install.png` di layar laptop
+4. Zepp: Developer Mode → **+** → **Scan** → scan QR → unduh → sync ke jam
 
 Build ulang dari nol (butuh Python + Pillow): `python tools/build_all.py`.
 Detil: `docs/build-install.md`.
