@@ -1,8 +1,9 @@
 # TEL-U Watchface — Amazfit T-Rex Pro
 
-Watch face **Amazfit T-Rex Pro** bertema **Telkom University (TEL-U)** — tiruan layout
-watch face rigger digital (jam besar di kanan, kolom KCAL/STEP/HR di kiri, arc progress),
-dengan ornamen & palet warna resmi Telkom University.
+Watch face **Amazfit T-Rex Pro** bertema **Telkom University (TEL-U)** —
+gaya "MIDNIGHT BLAZE": tipografi condensed italic memimpin (Anton + Rajdhani),
+hitam dominan + merah Tel-U tajam, monogram T angular raksasa, chip data,
+lockup branding kotak-T. Round-safe (lolos validator lingkaran r=175).
 
 > ✅ **Status: SELESAI — `out/telu_trex_pro.bin` siap import ke jam.**
 > Build satu perintah (`python tools/build_all.py`), terverifikasi parse balik.

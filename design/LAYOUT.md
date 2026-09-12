@@ -1,39 +1,39 @@
-# TEL-U Watchface — Layout Final (360 × 360, UIHH_GT2)
+# TEL-U Watchface — Layout Final v2 "MIDNIGHT BLAZE" (360 × 360, UIHH_GT2)
 
-Desain "rigger modern": jam besar kanan (HH/MM susun vertikal), kolom data kiri
-(KCAL/STEP/HR), strip status atas (baterai + tanggal + AM/PM), arc baterai
-bawah, branding TELKOM UNIVERSITY bawah. Sumber: `tools/gen_telu.py`.
+Arah desain: tipografi memimpin (Anton condensed italic + Rajdhani),
+hitam dominan + merah Tel-U tajam, monogram T angular raksasa sebagai
+potongan identitas, slash diagonal, chip data, glow terkendali.
+Font OFL di `assets/fonts/` (Anton, Rajdhani). Sumber: `tools/gen_telu.py`.
+
+ROUND-SAFE: semua konten lolos validator `tools/check_round.py` (r=175).
 
 ## Peta Indeks Gambar (43 total, preview = 42)
 
 | Indeks | Isi | Ukuran |
 |---|---|---|
-| 0 | Background (hitam, ring marun, tick, label+ikon kolom kiri, branding) | 360×360 |
-| 1 | Badge AM (merah, teks putih) | 46×28 |
-| 2 | Badge PM | 46×28 |
-| 3–12 | Digit besar 0–9 (putih, Arial Black) | 76×100 |
-| 13–22 | Digit kecil 0–9 (putih, nilai KCAL/STEP/HR) | 26×36 |
-| 23–32 | Digit medium 0–9 (putih, baterai % + tanggal) | 18×24 |
-| 33 | No-data `--` | 24×14 |
-| 34 | `%` (suffix baterai) | 18×13 |
-| 35–41 | Weekday TUE WED THU FRI SAT SUN MON (merah) | ~45×12 |
+| 0 | Background (karbon, blaze, monogram T, ring, chip, branding) | 360×360 |
+| 1 | Badge AM angular | 40×24 |
+| 2 | Badge PM angular | 40×24 |
+| 3–12 | Digit besar Anton italic + bayangan 0–9 | 64×100 |
+| 13–22 | Digit Rajdhani Bold 0–9 (nilai) | 26×34 |
+| 23–32 | Digit Rajdhani 0–9 (baterai %, tanggal) | 19×25 |
+| 33 | No-data `--` | dinamis |
+| 34 | `%` (suffix baterai) | dinamis |
+| 35–41 | Weekday TUE WED THU FRI SAT SUN MON (putih) | dinamis |
 | 42 | Preview 220×220 (katalog) | 220×220 |
 
 ## Posisi Elemen (origin kiri-atas)
 
 | Elemen | Posisi | Catatan |
 |---|---|---|
-| Baterai % | (42, 26), Left | digit medium + suffix `%` |
-| Tanggal: weekday | (180, 32), Left | 7 gambar TUE..MON |
-| Tanggal: hari | (224, 30), Left | digit medium, zero-pad 2 |
-| AM / PM | (288, 30) | badge, salah satu tampil ikut format jam |
-| Jam HH | (332, 80), Right | digit besar, zero-pad 2 |
-| Jam MM | (332, 186), Right | digit besar |
-| KCAL | (16, 86), Left | digit kecil |
-| STEP | (16, 168), Left | digit kecil, muat 5 digit |
-| HR | (16, 250), Left | digit kecil |
-| Arc baterai | center (180,180) r=160, 135°→225° | merah `#ED1E28`, lebar 7, ujung flat; 0° = atas searah jarum jam |
-| IdleScreen | jam Center (180, 96/202), weekday Center (180, 312), arc baterai | AOD minimal, bg sama |
+| Tanggal: weekday + hari | (162, 38) + (218, 36), Left | atas tengah |
+| AM / PM | (80, 44) | badge angular kiri atas |
+| Jam HH / MM | (314, 74) / (314, 180), Right | Anton italic besar |
+| KCAL / STEP / HR | (58, 118/184/246), Left, dalam chip | digit Rajdhani |
+| Baterai % | (283, 286), Right + suffix `%` | kanan bawah |
+| Arc baterai | center (180,180) r=172, 155°→205° | merah, lebar 8, flat; 0° = atas CW |
+| IdleScreen | jam Center (180, 92/198), weekday Center (180, 308), arc | AOD minimal |
 
-Label/ikon kolom kiri, separator, divider x=158, dan branding dibakar ke
-background (statis). Nilai 5-digit (langkah) sudah diuji muat sebelum divider.
+Chip (40, y, 172, y+62) + bar merah, label di dalam, ikon putih —
+semuanya dibakar ke background. Nilai 5-digit dan baterai 100% sudah
+diuji muat + lolos validator lingkaran.

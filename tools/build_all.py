@@ -21,6 +21,7 @@ def run(*args):
 
 def main():
     run("tools/gen_telu.py")
+    run("tools/check_round.py", "build/telu")
     run("tools/render_mockup.py", "build/telu", "build/mockup_360.png",
         "--small", "build/mockup_220.png")
     shutil.copy(ROOT / "build" / "mockup_220.png", ROOT / "build" / "telu" / "preview.png")
