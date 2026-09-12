@@ -1,27 +1,27 @@
 # 🎓 TELKOM UNIVERSITY | Watchface Amazfit T-Rex Pro
 
-**Kampus di pergelangan tanganmu.** 💜
-Hai, Telyutizen! Edisi **TELKOM UNIVERSITY** hadir dengan silhouette Gedung
-Balai Sidang dan Menara Tel-U, untaian semboyan **Harmony, Excellence,
-Integrity**, dan aksen merah khas almamater kita. Jamnya besar dan tegas,
-informasinya lengkap dalam sekali lirik. Sudah jalan mulus di jam sungguhan. 🎉
+Edisi **TELKOM UNIVERSITY** untuk Amazfit T-Rex Pro, dengan ilustrasi kampus,
+jam putih-merah, cuaca, waktu matahari, dan empat metrik aktivitas.
+Preview v5 sudah diperbaiki dan diperiksa dari hasil ekstraksi `.bin`.
+**Versi v5 ini masih menunggu uji di jam.** Hasil uji perangkat sebelumnya
+berlaku untuk v4.
 
 ![Tampilan utama TELKOM UNIVERSITY](out/preview.png)
 
 ## ✨ Kenapa kamu bakal suka
 
-- 🏛️ **Wajah kampus** yang langsung bikin inget jalanan Setiabudi.
-- 🕐 **Jam besar, warna berpasangan** — putih di kiri, merah di kanan.
+- 🏛️ **Wajah kampus** dengan logo dan ilustrasi kampus Tel-U.
+- 🕐 **Jam besar, warna berpasangan** - putih di kiri, merah di kanan.
 - ☀️ **Cuaca + jarum matahari:** suhu terkini dan satu penghitung pintar yang
-  otomatis nunjukin **matahari terbit** sebelum siang, lalu **terbenam** di
-  sore hari. Sekali pasang, nggak perlu ganti-ganti.
+  disiapkan untuk **matahari terbit/terbenam**. Pergantian otomatisnya
+  masih perlu diperiksa di perangkat.
 - 👟 **Satu layar, semua ritme:** langkah, denyut jantung, kalori, dan baterai
   dalam cincin-cincin rapi.
 - 🌙 **Always-on nanggung? Nggak.** Jam, hari, tanggal, dan baterai tetap
   tampil tanpa bikin panel utama "teriak-teriak".
 - 🔋 **Ramah AMOLED:** hitam pekat bikin layar hemat tenaga.
 - ⚪ **Aman di layar bulat:** semua elemen sudah dihitung supaya nggak
-  kepotong bezel.
+  kepotong bezel. Validator tambahan menolak tabrakan antarelemen.
 
 ## 🖼️ Galeri tampilan
 
@@ -34,7 +34,7 @@ informasinya lengkap dalam sekali lirik. Sudah jalan mulus di jam sungguhan. �
 | ![Always-on](out/preview_idle.png) | ![Nilai maksimum](out/preview_max.png) |
 
 *Semua gambar adalah render dari isi file `.bin` yang sudah diverifikasi
-(simulasi), bukan foto jam — biar kamu bisa lihat semua skenario tampilan
+(simulasi), bukan foto jam - biar kamu bisa lihat semua skenario tampilan
 sebelum pasang.*
 
 ## 📲 Cara pasang (5 menit, gampang!)
@@ -66,9 +66,11 @@ python -m unittest discover -s tools -p "test_*.py"
 ```
 
 - `tools/gen_telu.py`: generator aset dan parameter layout (latar diekstrak
-  dari desain referensi, area dinamis ditambal, ikon & angka digambar ulang).
-- `tools/check_round.py`: penjaga lingkaran — build gagal kalau ada elemen
+  dari ilustrasi kampus; cincin, ikon, dan angka disusun di latar bersih).
+- `tools/check_round.py`: penjaga lingkaran - build gagal kalau ada elemen
   keluar dari radius layar.
+- `tools/check_layout.py`: memeriksa tabrakan angka, label, ikon, dan latar
+  pada semua varian sprite serta memastikan angka tetap di dalam cincin.
 - `tools/pack_watchface.py`: packer `.bin` UIHH v2 dengan kompresi ala file
   asli.
 - `tools/verify_bin.py`: verifikasi hasil build (kompresi, header, parameter,
@@ -81,6 +83,8 @@ python -m unittest discover -s tools -p "test_*.py"
 - [`docs/v5-format-notes.md`](docs/v5-format-notes.md): catatan riset format
   untuk cuaca, matahari, dan nama bulan.
 - `out/validation.json`: ukuran, SHA-256, dan hasil validasi build terakhir.
+- [`docs/layout-repair-v5.md`](docs/layout-repair-v5.md): penyebab tumpukan,
+  perbaikan, dan hasil pengujian layout.
 
 ## 📅 Riwayat singkat
 
@@ -98,7 +102,7 @@ python -m unittest discover -s tools -p "test_*.py"
   OFL).
 - Logo resmi Telkom University dari
   [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Telkom_University_logo.svg),
-  karya Hilfans, lisensi CC BY-SA 4.0 — dipakai dengan penghormatan untuk
+  karya Hilfans, lisensi CC BY-SA 4.0 - dipakai dengan penghormatan untuk
   keperluan personal.
 - Ikon Material Design Icons (Pictogrammers) untuk sepatu, hati, api, dan
   baterai.
